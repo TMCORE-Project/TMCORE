@@ -1,0 +1,14 @@
+# Lib Path
+NETCDFINC = -I$(NETCDF)/include
+INCLUDE   = -I. $(NETCDFINC)
+
+# GFORTRAN COMPLIER
+F90     = gfortran
+FCFLAGS = -ffixed-line-length-none -ffree-line-length-none # -fmax-array-constructor=655350 -fmax-stack-var-size=327680 -fopenmp -fdefault-real-8
+CFLAGS  =
+OPT     = -Ofast -floop-parallelize-all -ftree-parallelize-loops=8 #-O3
+AR      = ar
+ARFLAGS = ru
+MAKE    = make
+
+EXENAME = SBPEM.exe
