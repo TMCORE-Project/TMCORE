@@ -83,6 +83,6 @@ PROGRAM MAIN
     enddo
     
     call SYSTEM_CLOCK(time_2)
-    print*,'It took ',dble(time_2-time_1)/10000.0,' seconds to run this program'
+    print*,'It took ',dble(time_2-time_1)/1000.0,' seconds to run this program'
 end program main
     
