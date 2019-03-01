@@ -308,9 +308,9 @@ module diagnostics_tools
         
         ! Compute vorticity tendency for each vertex
         do iVertex = 1,nVertices
-            tend_vorticity = -sum(t                   (:,iVertex)   &
-                                 *tend_u(edgesOnVertex(:,iVertex))  &
-                                 *dcEdge(edgesOnVertex(:,iVertex)))
+            tend_vorticity(iVertex) = -sum(t                   (:,iVertex)   &
+                                          *tend_u(edgesOnVertex(:,iVertex))  &
+                                          *dcEdge(edgesOnVertex(:,iVertex)))
         enddo
         
     end subroutine compute_tend_vorticity_by_tend_u
