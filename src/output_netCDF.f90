@@ -89,17 +89,17 @@ MODULE output_netCDF
         if(config_output_file/='')then
             nc_file = config_output_file
         else
-            write(nCells_c,'(i)')nCells
-            write(dt_c    ,'(i)')int(config_dt)
+            write(nCells_c,'(I0)')nCells
+            write(dt_c    ,'(I0)')int(config_dt)
             if(config_energy_conservation)then
                 EC_sign = 'EC'
-                write(EC_scheme_sign,'(i)') config_energy_conservation_scheme
+                write(EC_scheme_sign,'(I0)') config_energy_conservation_scheme
             else
                 EC_sign        = 'NEC'
                 EC_scheme_sign = ''
             endif
             
-            write(case_num_c,'(i)')config_test_case
+            write(case_num_c,'(I0)')config_test_case
             
             nc_file = 'output_'//'case'//trim(adjustl(case_num_c))//'_'//trim(adjustl(nCells_c))//'_'//trim(adjustl(dt_c))//'s_'//trim(adjustl(EC_sign))//trim(adjustl(EC_scheme_sign))&
                       //'_'//trim(adjustl(config_time_integration))//'_'//trim(adjustl(config_PV_scheme))//'.nc'

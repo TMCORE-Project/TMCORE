@@ -30,8 +30,7 @@ module test_cases
                                  kiteAreasOnVertex   ,&
                                  fCell               ,&
                                  fEdge               ,&
-                                 fVertex             ,&
-                                 wh_s
+                                 fVertex
     
     use shallow_water_waves_test, only: getFields
     

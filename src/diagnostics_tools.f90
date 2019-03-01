@@ -105,7 +105,7 @@ module diagnostics_tools
                 f_edge(iEdge) = 0.5d0 * (f_cell(cell1) + f_cell(cell2))
             end do
         else
-            stop 'Now we support only interpolating fields from cell to edge with 2nd order accuacy'
+            stop 'Now we support only interpolating fields from cell to edge with 2nd order precsion'
         endif
             
     end subroutine interp_C2E
@@ -120,8 +120,8 @@ module diagnostics_tools
         
         integer i,iVertex
         
+        f_vertex = 0.d0
         do iVertex = 1,nVertices
-            f_vertex(iVertex) = 0.d0
             do i = 1, vertexDegree
                 f_vertex(iVertex) = f_vertex(iVertex) + f_cell(cellsOnVertex(i,iVertex)) * kiteAreasOnVertex(i,iVertex)
             end do
@@ -161,14 +161,11 @@ module diagnostics_tools
         integer vertex1,vertex2
         integer iEdge,iVertex
         
-        circulation = 0.d0
-        do iEdge = 1, nEdges
-            vertex1 = verticesOnEdge(1,iEdge)
-            vertex2 = verticesOnEdge(2,iEdge)
-            
-            circulation(vertex1) = circulation(vertex1) - dcEdge(iEdge) * u(iEdge)
-            circulation(vertex2) = circulation(vertex2) + dcEdge(iEdge) * u(iEdge)
-        end do
+        do iVertex = 1,nVertices
+            circulation(iVertex) = -sum(t                   (:,iVertex) &
+                                       *dcEdge(edgesOnVertex(:,iVertex))&
+                                       *u     (edgesOnVertex(:,iVertex)))
+        enddo
         
         vorticity = circulation / areaTriangle
     end subroutine compute_vorticity
@@ -181,17 +178,13 @@ module diagnostics_tools
         real(kind=RKIND),intent(in ) :: u         (nEdges)
         real(kind=RKIND),intent(out) :: divergence(nCells)
         
-        integer cell1,cell2
-        integer iEdge
+        integer iCell
         
-        divergence = 0.d0
-        do iEdge = 1, nEdges
-           cell1 = cellsOnEdge(1,iEdge)
-           cell2 = cellsOnEdge(2,iEdge)
-           
-           divergence(cell1) = divergence(cell1) + u(iEdge)*dvEdge(iEdge)
-           divergence(cell2) = divergence(cell2) - u(iEdge)*dvEdge(iEdge)
-        end do
+        do iCell = 1,nCells
+            divergence(iCell) = -sum(n                 (1:nEdgesOnCell(iCell),iCell)  &
+                                    *u     (edgesOnCell(1:nEdgesOnCell(iCell),iCell)) &
+                                    *dvEdge(edgesOnCell(1:nEdgesOnCell(iCell),iCell)))
+        enddo
         
         divergence = divergence / areaCell
         
@@ -205,14 +198,11 @@ module diagnostics_tools
         real(kind=RKIND),intent(in ) :: u (nEdges)
         real(kind=RKIND),intent(out) :: ke(nCells)
         
-        integer i,iCell,iEdge
+        integer i,iCell
         
-        ke = 0.d0
         do iCell = 1, nCells
-            do i = 1, nEdgesOnCell(iCell)
-                iEdge = edgesOnCell(i,iCell)
-                ke(iCell) = ke(iCell) + 0.25d0 * areaEdge(iEdge) * u(iEdge)**2.d0
-            end do
+            ke(iCell) = sum(0.25d0 * areaEdge(edgesOnCell(1:nEdgesOnCell(iCell),iCell))       &
+                                   * u       (edgesOnCell(1:nEdgesOnCell(iCell),iCell))**2.d0)
         end do
         
         ke= ke / areaCell
@@ -229,12 +219,9 @@ module diagnostics_tools
         integer eoe
         integer i,iEdge
         
-        v = 0.d0
         do iEdge = 1,nEdges
-            do i = 1, nEdgesOnEdge(iEdge)
-                eoe = edgesOnEdge(i,iEdge)
-                v(iEdge) = v(iEdge) + weightsOnEdge(i,iEdge) * u(eoe)
-            end do
+            v(iEdge) = sum(weightsOnEdge(1:nEdgesOnEdge(iEdge),iEdge)  &
+                          *u(edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)))
         end do
     end subroutine compute_v
     
@@ -270,13 +257,11 @@ module diagnostics_tools
         real(kind=RKIND),intent(in ) :: v (nEdges)
         real(kind=RKIND),intent(out) :: pv_cell_v(nCells)
         
-        integer(kind=IKIND)          :: iCell,iEdge
+        integer(kind=IKIND)          :: iCell
         
-        pv_cell_v = 0.d0
         do iCell = 1,nCells
-            do iEdge = 1,nEdgesOnCell(iCell)
-                pv_cell_v(iCell) = pv_cell_v(iCell) + v(iEdge)*dvEdge(iEdge)
-            enddo
+            pv_cell_v(iCell) = sum(v     (1:nEdgesOnCell(iCell)) &
+                                  *dvEdge(1:nEdgesOnCell(iCell)))
         enddo
         pv_cell_v = (pv_cell_v/wh+fCell)/areaCell
     endsubroutine compute_pv_cell_v
@@ -296,8 +281,8 @@ module diagnostics_tools
         integer i,j,iEdge
     
         !Energy Conservation Scheme
+        Q = 0.d0
         do iEdge = 1, nEdges
-            Q(iEdge) = 0.d0
             do j = 1, nEdgesOnEdge(iEdge)
                 eoe      = edgesOnEdge(j,iEdge)
                 workpv   = 0.5d0*(pv_edge(iEdge) + pv_edge(eoe))
@@ -319,20 +304,14 @@ module diagnostics_tools
         real(kind=RKIND)             :: temp
         
         integer(kind=IKIND)          :: vertex1,vertex2
-        integer(kind=IKIND)          :: i,iEdge
+        integer(kind=IKIND)          :: iVertex,iEdge
         
         ! Compute vorticity tendency for each vertex
-        tend_vorticity = 0.d0
-        do iEdge = 1, nEdges
-            vertex1 = verticesOnEdge(1,iEdge)
-            vertex2 = verticesOnEdge(2,iEdge)
-            
-            temp    = tend_u(iEdge)*dcEdge(iEdge)
-            
-            tend_vorticity(vertex1) = tend_vorticity(vertex1) - temp
-            tend_vorticity(vertex2) = tend_vorticity(vertex2) + temp
-        end do            
-        tend_vorticity = tend_vorticity / areaTriangle
+        do iVertex = 1,nVertices
+            tend_vorticity = -sum(t                   (:,iVertex)   &
+                                 *tend_u(edgesOnVertex(:,iVertex))  &
+                                 *dcEdge(edgesOnVertex(:,iVertex)))
+        enddo
         
     end subroutine compute_tend_vorticity_by_tend_u
     
@@ -561,9 +540,9 @@ module diagnostics_tools
         real(kind=RKIND),intent(in ) :: pv_vertex(nVertices)
         real(kind=RKIND),intent(out) :: pv_edge  (nEdges   )
         
-        real(kind=RKIND)             :: lambda    (nEdges   )
-        integer(kind=IKIND)          :: vertex1   (nEdges   ),&
-                                        vertex2   (nEdges   )
+        real(kind=RKIND)             :: lambda   (nEdges   )
+        integer(kind=IKIND)          :: vertex1  (nEdges   ),&
+                                        vertex2  (nEdges   )
         integer iEdge,iVertex
         
         vertex1 = verticesOnEdge(1,:)
