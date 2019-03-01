@@ -43,5 +43,5 @@ set(source_files
 
 set(CMAKE_Fortran_MODULE_DIRECTORY "${CMAKE_BINARY_DIR}/.mods")
 
-add_executable(tmcore_test.exe src/MPAS_SW.f90 ${source_files})
+add_executable(tmcore_test.exe src/tmcore.f90 ${source_files})
 target_link_libraries(tmcore_test.exe netcdf netcdff)
