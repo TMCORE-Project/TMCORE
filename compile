@@ -1,4 +1,0 @@
-#!/bin/bash
-cp /mnt/e/study/SBPEM/A_grid/* .
-./clean
-make
