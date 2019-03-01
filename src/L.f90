@@ -1,6 +1,19 @@
 SUBROUTINE L_operator(wu,wh,wh_s,Lwu,Lwh)
     use module_para      , only : RKIND,config_enstrophy_conservation
-    use mesh_info        , only : nCells,nEdges,nVertices,areaCell,areaEdge,areaTriangle,cellsOnEdge,edgesOnCell,nEdgesOnCell,dvEdge,dcEdge,sum_areaEdge,sum_areaCell,n
+    use mesh_info        , only : nCells      ,&
+                                  nEdges      ,&
+                                  nVertices   ,&
+                                  areaCell    ,&
+                                  areaEdge    ,&
+                                  areaTriangle,&
+                                  cellsOnEdge ,&
+                                  edgesOnCell ,&
+                                  nEdgesOnCell,&
+                                  dvEdge      ,&
+                                  dcEdge      ,&
+                                  sum_areaEdge,&
+                                  sum_areaCell,&
+                                  n
     use diagnostics_tools, only : IIAP                            ,&
                                   interp_C2E                      ,&
                                   interp_C2V                      ,&
