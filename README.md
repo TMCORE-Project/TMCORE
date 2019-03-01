@@ -19,7 +19,7 @@ To obtain the energy conservation by setting namelist
 
 config_energy_conservation = .true.
 
-To obtain the energy conservation by setting namelist
+To obtain the potential enstrophy conservation by setting namelist
 
 config_PV_scheme = 'APVM_Conservation'
 
