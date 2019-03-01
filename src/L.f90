@@ -1,6 +1,6 @@
 SUBROUTINE L_operator(wu,wh,wh_s,Lwu,Lwh)
     use module_para      , only : RKIND,config_enstrophy_conservation
-    use mesh_info        , only : nCells,nEdges,nVertices,areaCell,areaEdge,areaTriangle,cellsOnEdge,dvEdge,dcEdge,sum_areaEdge,sum_areaCell
+    use mesh_info        , only : nCells,nEdges,nVertices,areaCell,areaEdge,areaTriangle,cellsOnEdge,edgesOnCell,nEdgesOnCell,dvEdge,dcEdge,sum_areaEdge,sum_areaCell,n
     use diagnostics_tools, only : IIAP                            ,&
                                   interp_C2E                      ,&
                                   interp_C2V                      ,&
@@ -51,7 +51,7 @@ SUBROUTINE L_operator(wu,wh,wh_s,Lwu,Lwh)
     
     real(kind=RKIND)              :: epsilon
     
-    integer iEdge
+    integer iCell
     integer cell1(nEdges),cell2(nEdges)
     
     call IIAP              (wu        ,wh        ,u                            )
@@ -68,9 +68,9 @@ SUBROUTINE L_operator(wu,wh,wh_s,Lwu,Lwh)
     !
     tend_wh = 0.d0
     flux    = u * dvEdge * wh_edge
-    do iEdge = 1, nEdges
-       tend_wh(cell1(iEdge)) = tend_wh(cell1(iEdge)) - flux(iEdge)
-       tend_wh(cell2(iEdge)) = tend_wh(cell2(iEdge)) + flux(iEdge)
+    do iCell = 1, nCells
+       tend_wh(iCell) = -sum(n               (1:nEdgesOnCell(iCell),iCell) &
+                            *flux(edgesOnCell(1:nEdgesOnCell(iCell),iCell)))
     end do 
     
     tend_wh = tend_wh / areaCell
