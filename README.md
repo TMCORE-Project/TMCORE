@@ -1,9 +1,7 @@
 # tmcore
 TRiSK-based Multiple-Conservation dynamical cORE
 
-This model is a TRiSK-based shallow water dynamical core, which has 4 integral invariants including total mass, total absolute vorticity,
-
-total energy and total potential enstrophy.
+This model is a TRiSK-based shallow water dynamical core, which has 4 integral invariants including total mass, total absolute vorticity, total energy and total potential enstrophy.
 
 Here we provide 4 kinds of test cases, 
 
