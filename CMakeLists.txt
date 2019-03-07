@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.0 FATAL_ERROR)
 
 project(tmcore LANGUAGES Fortran)
 
-set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-line-length-none")
+set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -Ofast -floop-parallelize-all -ftree-parallelize-loops=8 -ffree-line-length-none")
 
 if (CMAKE_BUILD_TYPE MATCHES DEBUG)
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -g -gdwarf -Og -fbacktrace -fcheck=all")

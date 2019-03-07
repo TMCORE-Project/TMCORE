@@ -41,7 +41,7 @@ contains
     integer i
 
     if (.not. allocated(tend)) then
-      allocate(tend(0:2))
+      allocate(tend(-4:2))
       do i = lbound(tend, 1), ubound(tend, 1)
         call allocate_tend(tend(i))
       end do

@@ -57,7 +57,7 @@ contains
     integer i
 
     if (.not. allocated(state)) then
-      allocate(state(0:2))
+      allocate(state(-4:2))
       do i = lbound(state, 1), ubound(state, 1)
         call allocate_state(state(i))
       end do

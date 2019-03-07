@@ -75,7 +75,14 @@ contains
     do while (.not. time_is_finished())
       call time_integrate(spatial_operators_ptr, update_state_ptr)
       call time_advance()
+      
+      call scalar_c2e_interp_operator(state(old)%cell  %gd , state(old)%edge  %gd                         )
+      call inverse_iap_sw_operator   (state(old)%edge  %gd , state(old)%edge  %iap_u, state(old)%edge  %u )
+      call scalar_c2v_interp_operator(state(old)%cell  %gd , state(old)%vertex%gd                         )
+      call curl_operator             (state(old)%edge  %u  , state(old)%vertex%vor                        )
+      call calc_pv_on_vertex         (state(old)%vertex%vor, state(old)%vertex%gd   , state(old)%vertex%pv)
       call diag_run(state(old), static)
+      
       if (time_is_alerted('hist0.output')) call history_write(state(old), static)
       call log_step()
     end do
@@ -87,6 +94,8 @@ contains
     type(state_type), intent(inout) :: state
     type(tend_type),  intent(inout) :: tend
 
+    call scalar_c2e_interp_operator(state%cell%gd, state%edge%gd)
+    call inverse_iap_sw_operator(state%edge%gd, state%edge%iap_u, state%edge%u)
     call calc_gd_tend_on_cell(state%edge%u, state%edge%gd, tend%cell%gd)
     call scalar_c2e_interp_operator(tend%cell%gd, tend%edge%gd)
     call scalar_c2v_interp_operator(tend%cell%gd, tend%vertex%gd)
@@ -115,10 +124,9 @@ contains
 
     flux = u_edge * gd_edge * dvEdge
     do iCell = lbound(gd_tend_cell, 1), ubound(gd_tend_cell, 1)
-      gd_tend_cell(iCell) = -sum(                      &
-        nSignEdge(1:nEdgesOnCell(iCell),iCell) *       &
-        flux(edgesOnCell(1:nEdgesOnCell(iCell),iCell)) &
-      )
+      gd_tend_cell(iCell) = -sum( nSignEdge(1:nEdgesOnCell(iCell),iCell)         &
+                                * flux(edgesOnCell(1:nEdgesOnCell(iCell),iCell)) &
+                                )
     end do
     gd_tend_cell = gd_tend_cell / areaCell
 
@@ -160,11 +168,8 @@ contains
     type(state_type), intent(in)    :: old_state
     type(state_type), intent(inout) :: new_state
 
-    new_state%edge%iap_u = old_state%edge%iap_u - dt * tend%edge%iap_u
-    new_state%cell%gd    = old_state%cell%gd    - dt * tend%cell%gd
-
-    call scalar_c2e_interp_operator(new_state%cell%gd, new_state%edge%gd)
-    call inverse_iap_sw_operator   (new_state%edge%gd, new_state%edge%iap_u, new_state%edge%u)
+    new_state%edge%iap_u = old_state%edge%iap_u + dt * tend%edge%iap_u
+    new_state%cell%gd    = old_state%cell%gd    + dt * tend%cell%gd
 
   end subroutine update_state
 
