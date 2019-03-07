@@ -127,7 +127,7 @@ contains
     do iVertex = lbound(f_vertex, 1), ubound(f_vertex, 1)
       do i = 1, nCellsOnVertex(iVertex)
         iCell = cellsOnVertex(i,iVertex)
-        \
+        
         f_cell(iCell) = f_cell(iCell) + f_vertex(iVertex) * kiteAreasOnVertex(i,iVertex) / areaCell(iCell)
       end do
     end do
