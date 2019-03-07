@@ -372,7 +372,7 @@ contains
       vor_tend_vertex(iVertex) = -sum( tSignEdge                (:,iVertex)  &
                                      * u_tend_edge(edgesOnVertex(:,iVertex)) &
                                      * dcEdge     (edgesOnVertex(:,iVertex)) &
-                                     )
+                                     ) / areaTriangle(iVertex)
     end do
 
   end subroutine calc_vor_tend_on_vertex
