@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.0.0 FATAL_ERROR)
 
 project(tmcore LANGUAGES Fortran)
 
-set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-line-length-none -g -gdwarf -Og -fbacktrace -fcheck=all")
+set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-line-length-none")
+
+if (CMAKE_BUILD_TYPE MATCHES DEBUG)
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -g -gdwarf -Og -fbacktrace -fcheck=all")
+endif ()
 
 if (DEFINED ENV{NETCDF} AND (NOT DEFINED ENV{NETCDF_ROOT}))
   set(ENV{NETCDF_ROOT} $ENV{NETCDF})

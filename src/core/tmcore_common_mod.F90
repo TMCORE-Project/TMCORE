@@ -143,24 +143,24 @@ contains
 
   end subroutine calc_tangent_wind
 
-  subroutine calc_tangent_vor_flux(u_edge, gd_edge, pv_edge, pv_flux_edge)
+  subroutine calc_tangent_vor_flux(u_edge, gd_edge, pv_edge, tangent_vor_flux)
 
-    real(real_kind), intent(in)  :: u_edge      (:)
-    real(real_kind), intent(in)  :: gd_edge     (:)
-    real(real_kind), intent(in)  :: pv_edge     (:)
-    real(real_kind), intent(out) :: pv_flux_edge(:)
+    real(real_kind), intent(in)  :: u_edge          (:)
+    real(real_kind), intent(in)  :: gd_edge         (:)
+    real(real_kind), intent(in)  :: pv_edge         (:)
+    real(real_kind), intent(out) :: tangent_vor_flux(:)
 
     integer iEdge, iEdgePrime, i
 
-    pv_flux_edge = 0.0d0
+    tangent_vor_flux = 0.0d0
     do iEdge = lbound(u_edge, 1), ubound(u_edge, 1)
       do i = 1, nEdgesOnEdge(iEdge)
         iEdgePrime = edgesOnEdge(i,iEdge)
-        
-        pv_flux_edge(iEdge) = pv_flux_edge(iEdge) + weightsOnEdge(i,iEdge)                         &
-                                                  * u_edge (iEdgePrime)                            &
-                                                  * gd_edge(iEdgePrime)                            &
-                                                  * 0.5d0 * (pv_edge(iEdge) + pv_edge(iEdgePrime))
+
+        tangent_vor_flux(iEdge) = tangent_vor_flux(iEdge) + weightsOnEdge(i,iEdge)                         &
+                                                          * u_edge (iEdgePrime)                            &
+                                                          * gd_edge(iEdgePrime)                            &
+                                                          * 0.5d0 * (pv_edge(iEdge) + pv_edge(iEdgePrime))
       end do
     end do
 

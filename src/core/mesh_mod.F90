@@ -43,6 +43,7 @@ module mesh_mod
   real(real_kind), allocatable :: angleEdge(:)            ! Angle in radians an edge’s normal vector makes with the local eastward direction
   integer, allocatable :: nSignEdge(:,:)
   integer, allocatable :: tSignEdge(:,:)
+  real(real_kind) totalArea
   ! Indices
   integer, allocatable :: cellsOnCell(:,:)                ! Cell indices that surround a given cell
   integer, allocatable :: cellsOnEdge(:,:)                ! Cell indices that saddle a given edge
@@ -304,6 +305,8 @@ contains
     areaTriangle      = areaTriangle      * radius**2
     areaEdge          = areaEdge          * radius**2
     kiteAreasOnVertex = kiteAreasOnVertex * radius**2
+
+    totalArea         = sum(areaCell)
 
   end subroutine mesh_init
 

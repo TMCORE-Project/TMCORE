@@ -2,6 +2,7 @@ module operators_mod
 
   use params_mod
   use mesh_mod
+  use static_mod
   use state_mod
   use tend_mod
 
@@ -23,6 +24,7 @@ module operators_mod
   interface inner_product
     module procedure inner_product_state
     module procedure inner_product_tend
+    module procedure inner_product_state_tend
   end interface inner_product
 
 contains
@@ -174,7 +176,7 @@ contains
     type(state_type), intent(in) :: state1
     type(state_type), intent(in) :: state2
 
-    res = sum(state1%edge%u * state2%edge%u * areaEdge) + sum(state1%cell%gd * state2%cell%gd * areaCell)
+    res = (sum(state1%edge%iap_u * state2%edge%iap_u * areaEdge) + sum(state1%cell%gd * state2%cell%gd * areaCell)) / totalArea
 
   end function inner_product_state
 
@@ -183,8 +185,17 @@ contains
     type(tend_type), intent(in) :: tend1
     type(tend_type), intent(in) :: tend2
 
-    res = sum(tend1%edge%iap_u * tend2%edge%iap_u * areaEdge) + sum(tend1%cell%gd * tend2%cell%gd * areaCell)
+    res = (sum(tend1%edge%iap_u * tend2%edge%iap_u * areaEdge) + sum(tend1%cell%gd * tend2%cell%gd * areaCell)) / totalArea
 
   end function inner_product_tend
+
+  real(real_kind) function inner_product_state_tend(state, tend) result(res)
+
+    type(state_type), intent(in) :: state
+    type(tend_type),  intent(in) :: tend
+
+    res = (sum(state%edge%iap_u * tend%edge%iap_u * areaEdge)  + sum((state%cell%gd + static%cell%ghs) * tend%cell%gd * areaCell)) /totalArea
+
+  end function inner_product_state_tend
 
 end module operators_mod
