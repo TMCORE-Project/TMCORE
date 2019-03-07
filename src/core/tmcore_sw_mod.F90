@@ -138,10 +138,12 @@ contains
     real(real_kind), intent(out) :: u_tend_edge    (:)
     real(real_kind), intent(out) :: iap_u_tend_edge(:)
 
-    real(real_kind) dkedx(lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
-    real(real_kind) dghdx(lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
+    real(real_kind) iap_gd_edge(lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
+    real(real_kind) dkedx      (lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
+    real(real_kind) dghdx      (lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
     real(real_kind) eps
 
+    iap_gd_edge = sqrt(gd_edge)
     dkedx = ( ke_cell(cellsOnEdge(2,:)) -  ke_cell(cellsOnEdge(1,:))) / dcEdge
     dghdx = ( gd_cell(cellsOnEdge(2,:)) -  gd_cell(cellsOnEdge(1,:)) + &
              ghs_cell(cellsOnEdge(2,:)) - ghs_cell(cellsOnEdge(1,:))) / dcEdge
@@ -154,7 +156,7 @@ contains
 
     u_tend_edge = pv_flx_edge * eps - dkedx - dghdx
 
-    iap_u_tend_edge = sqrt(gd_edge) * u_tend_edge + 0.5d0 * u_edge / gd_edge * gd_tend_edge
+    iap_u_tend_edge = iap_gd_edge * u_tend_edge + 0.5d0 * u_edge / iap_gd_edge * gd_tend_edge
 
   end subroutine calc_u_tend_on_edge
 
