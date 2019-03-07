@@ -41,7 +41,7 @@ res_u@sfXArray = f->lonEdge
 res_u@sfYArray = f->latEdge
 
 res_panel = True
-res_panel@gsnMaximize = True
+; res_panel@gsnMaximize = True
 res_panel@gsnPanelRowSpec = True
 
 do t = 0, dimsizes(file_names) - 1

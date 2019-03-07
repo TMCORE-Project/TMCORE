@@ -72,10 +72,10 @@ contains
     integer iVertex
 
     do iVertex = lbound(curl, 1), ubound(curl, 1)
-      curl(iVertex) = sum( tSignEdge           (:,iVertex)  &
-                         * f_edge(edgesOnVertex(:,iVertex)) &
-                         * dcEdge(edgesOnVertex(:,iVertex)) &
-                         )
+      curl(iVertex) = -sum( tSignEdge           (:,iVertex)  &
+                          * f_edge(edgesOnVertex(:,iVertex)) &
+                          * dcEdge(edgesOnVertex(:,iVertex)) &
+                          )
     end do
     curl = curl / areaTriangle
 
