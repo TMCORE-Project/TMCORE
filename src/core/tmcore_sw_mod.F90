@@ -141,20 +141,13 @@ contains
     real(real_kind) iap_gd_edge(lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
     real(real_kind) dkedx      (lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
     real(real_kind) dghdx      (lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
-    real(real_kind) eps
 
     iap_gd_edge = sqrt(gd_edge)
     dkedx = ( ke_cell(cellsOnEdge(2,:)) -  ke_cell(cellsOnEdge(1,:))) / dcEdge
     dghdx = ( gd_cell(cellsOnEdge(2,:)) -  gd_cell(cellsOnEdge(1,:)) + &
              ghs_cell(cellsOnEdge(2,:)) - ghs_cell(cellsOnEdge(1,:))) / dcEdge
 
-    if (conserve_enstropy) then
-      call conserve_potential_enstropy(dkedx, dghdx, pv_flx_edge, pv_vertex, gd_tend_cell, eps)
-    else
-      eps = 1.0d0
-    end if
-
-    u_tend_edge = pv_flx_edge * eps - dkedx - dghdx
+    u_tend_edge = pv_flx_edge - dkedx - dghdx
 
     iap_u_tend_edge = iap_gd_edge * u_tend_edge + 0.5d0 * u_edge / iap_gd_edge * gd_tend_edge
 
@@ -171,20 +164,9 @@ contains
     new_state%cell%gd    = old_state%cell%gd    - dt * tend%cell%gd
 
     call scalar_c2e_interp_operator(new_state%cell%gd, new_state%edge%gd)
-    call inverse_iap_sw_operator(new_state%edge%gd, new_state%edge%iap_u, new_state%edge%u)
+    call inverse_iap_sw_operator   (new_state%edge%gd, new_state%edge%iap_u, new_state%edge%u)
 
   end subroutine update_state
-
-  subroutine conserve_potential_enstropy(dkedx, dghdx, pv_flx_edge, pv_vertex, gd_tend_cell, eps)
-
-    real(real_kind), intent(in)  :: dkedx(:)
-    real(real_kind), intent(in)  :: dghdx(:)
-    real(real_kind), intent(in)  :: pv_flx_edge(:)
-    real(real_kind), intent(in)  :: pv_vertex(:)
-    real(real_kind), intent(in)  :: gd_tend_cell(:)
-    real(real_kind), intent(out) :: eps
-
-  end subroutine conserve_potential_enstropy
 
   subroutine calc_total_mass(state)
 
@@ -197,9 +179,9 @@ contains
   subroutine calc_total_energy(state, static)
 
     type(state_type),  intent(inout) :: state
-    type(static_type), intent(in) :: static
+    type(static_type), intent(in   ) :: static
 
-    state%total_energy = sum(state%edge%u**2 * areaEdge) + sum((state%cell%gd + static%cell%ghs)**2 * areaCell)
+    state%total_energy = sum(state%edge%iap_u**2 * areaEdge) + sum((state%cell%gd + static%cell%ghs)**2 * areaCell)
 
   end subroutine calc_total_energy
 

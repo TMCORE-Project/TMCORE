@@ -9,7 +9,7 @@ module params_mod
   integer run_minutes
   integer run_seconds
   integer :: start_time(5) = [0, 0, 0, 0, 0]
-  integer :: end_time(5) = [0, 0, 0, 0, 0]
+  integer :: end_time  (5) = [0, 0, 0, 0, 0]
   real(real_kind) dt
 
   namelist /time_control/ &
@@ -33,8 +33,7 @@ module params_mod
   integer time_scheme                 ! Time integration scheme
   integer energy_scheme               ! Total energy conservation scheme, 1: tau_n = 2.d0*(phi,F)/(phi,phi); 2: tau_n = beta_n*dt
   integer pv_scheme                   ! 1: APVM; 2: CLUST
-  logical conserve_energy
-  logical conserve_enstropy
+  logical :: conserve_energy = .true.
   real(real_kind) :: apvm_weight = 0.5
   real(real_kind) :: clust_weight = 0.25
   character(max_file_path_len) mesh_file_path
@@ -44,7 +43,6 @@ module params_mod
     energy_scheme,        &
     pv_scheme,            &
     conserve_energy,      &
-    conserve_enstropy,    &
     apvm_weight,          &
     clust_weight,         &
     mesh_file_path

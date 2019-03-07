@@ -118,7 +118,7 @@ contains
     else
       beta = 1.0d0
     end if
-
+    
     call update_state(beta * dt, tend(new), state(old), state(new))
 
   end subroutine time_integrate_PC2
@@ -132,10 +132,10 @@ contains
     integer iCell
 
     do iCell = lbound(ke_cell, 1), ubound(ke_cell, 1)
-      ke_cell(iCell) = sum(                                   &
-        u_edge  (edgesOnCell(1:nEdgesOnCell(iCell),iCell))**2 * &
-        areaEdge(edgesOnCell(1:nEdgesOnCell(iCell),iCell))          &
-      ) * 0.25d0 / areaCell(iCell)
+      ke_cell(iCell) = sum(                                                       &
+                            u_edge  (edgesOnCell(1:nEdgesOnCell(iCell),iCell))**2 &
+                          * areaEdge(edgesOnCell(1:nEdgesOnCell(iCell),iCell))    &
+                          ) * 0.25d0 / areaCell(iCell)
     end do
 
   end subroutine calc_kinetic_energy
@@ -148,10 +148,10 @@ contains
     integer iEdge
 
     do iEdge = lbound(v_edge, 1), ubound(v_edge, 1)
-      v_edge(iEdge) = sum(                                 &
-        u_edge(edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)) * &
-        weightsOnEdge(1:nEdgesOnEdge(iEdge),iEdge)         &
-      )
+      v_edge(iEdge) = sum(                                                         &
+                           u_edge       (edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)) &
+                         * weightsOnEdge            (1:nEdgesOnEdge(iEdge),iEdge)  &
+                         )
     end do
 
   end subroutine calc_tangent_wind
@@ -169,10 +169,11 @@ contains
     do iEdge = lbound(u_edge, 1), ubound(u_edge, 1)
       do i = 1, nEdgesOnEdge(iEdge)
         iEdgePrime = edgesOnEdge(i,iEdge)
-        pv_flux_edge(iEdge) = pv_flux_edge(iEdge) +      &
-          weightsOnEdge(i,iEdge) *                       &
-          u_edge(iEdgePrime) * gd_edge(iEdgePrime) *     &
-          0.5d0 * (pv_edge(iEdge) + pv_edge(iEdgePrime))
+        
+        pv_flux_edge(iEdge) = pv_flux_edge(iEdge) + weightsOnEdge(i,iEdge)                         &
+                                                  * u_edge (iEdgePrime)                            &
+                                                  * gd_edge(iEdgePrime)                            &
+                                                  * 0.5d0 * (pv_edge(iEdge) + pv_edge(iEdgePrime))
       end do
     end do
 
@@ -232,10 +233,9 @@ contains
 
     if (apvm_weight /= 0.0) then
       do iEdge = lbound(pv_edge, 1), ubound(pv_edge, 1)
-        pv_edge(iEdge) = pv_edge(iEdge) - apvm_weight * dt * ( &
-          v_edge(iEdge) * (pv_vertex(verticesOnEdge(2,iEdge)) - pv_vertex(verticesOnEdge(1,iEdge))) / dvEdge(iEdge) + &
-          u_edge(iEdge) * (pv_cell  (cellsOnEdge   (2,iEdge)) - pv_cell  (cellsOnEdge   (1,iEdge))) / dcEdge(iEdge) &
-        )
+        pv_edge(iEdge) = pv_edge(iEdge) - apvm_weight * dt * ( v_edge(iEdge) * (pv_vertex(verticesOnEdge(2,iEdge)) - pv_vertex(verticesOnEdge(1,iEdge))) / dvEdge(iEdge) &
+                                                             + u_edge(iEdge) * (pv_cell  (cellsOnEdge   (2,iEdge)) - pv_cell  (cellsOnEdge   (1,iEdge))) / dcEdge(iEdge) &
+                                                             )
       end do
     end if
 
@@ -263,10 +263,9 @@ contains
     call scalar_v2e_interp_operator(pv_vertex, pv_edge)
 
     do iEdge = lbound(pv_edge, 1), ubound(pv_edge, 1)
-      dpv_edge(iEdge) = ( &
-        v_edge(iEdge) * (pv_vertex(verticesOnEdge(2,iEdge)) - pv_vertex(verticesOnEdge(1,iEdge))) / dvEdge(iEdge) + &
-        u_edge(iEdge) * (pv_cell  (cellsOnEdge   (2,iEdge)) - pv_cell  (cellsOnEdge   (1,iEdge))) / dcEdge(iEdge) &
-      )
+      dpv_edge(iEdge) = ( v_edge(iEdge) * (pv_vertex(verticesOnEdge(2,iEdge)) - pv_vertex(verticesOnEdge(1,iEdge))) / dvEdge(iEdge) &
+                        + u_edge(iEdge) * (pv_cell  (cellsOnEdge   (2,iEdge)) - pv_cell  (cellsOnEdge   (1,iEdge))) / dcEdge(iEdge) &
+                        )
     end do
 
     call calc_tangent_vor_flux(u_edge, gd_edge,  pv_edge,  pv_flux_edge)
@@ -275,10 +274,9 @@ contains
     call calc_vor_tend_on_vertex( pv_flux_edge,  vor_tend_vertex)
     call calc_vor_tend_on_vertex(dpv_flux_edge, dvor_tend_vertex)
 
-    eps = -(                                                  &
-      sum(pv_vertex**2 * gd_tend_vertex * areaTriangle) -     &
-      sum(pv_vertex * vor_tend_vertex * areaTriangle) * 2.0d0 &
-    ) / (2.0d0 * dt * sum(pv_vertex * dvor_tend_vertex * areaTriangle))
+    eps = -( sum(pv_vertex**2 * gd_tend_vertex  * areaTriangle)         &
+           - sum(pv_vertex    * vor_tend_vertex * areaTriangle) * 2.0d0 &
+           ) / (2.0d0 * dt * sum(pv_vertex * dvor_tend_vertex * areaTriangle))
 
     pv_edge = pv_edge - eps * dt * dpv_edge
 
@@ -316,11 +314,10 @@ contains
     integer iVertex
 
     do iVertex = lbound(vor_tend_vertex, 1), ubound(vor_tend_vertex, 1)
-      vor_tend_vertex(iVertex) = -sum(          &
-        tSignEdge(:,iVertex) *                  &
-        u_tend_edge(edgesOnVertex(:,iVertex)) * &
-        dcEdge(edgesOnVertex(:,iVertex))        &
-      )
+      vor_tend_vertex(iVertex) = -sum( tSignEdge                (:,iVertex)  &
+                                     * u_tend_edge(edgesOnVertex(:,iVertex)) &
+                                     * dcEdge     (edgesOnVertex(:,iVertex)) &
+                                     )
     end do
 
   end subroutine calc_vor_tend_on_vertex
