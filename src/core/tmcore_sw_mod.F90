@@ -78,7 +78,6 @@ contains
       call diag_run(state(old), static)
       if (time_is_alerted('hist0.output')) call history_write(state(old), static)
       call log_step()
-      if (time_step == 2) stop 'Check result!'
     end do
 
   end subroutine tmcore_sw_run
@@ -155,7 +154,7 @@ contains
 
     u_tend_edge = pv_flx_edge * eps - dkedx - dghdx
 
-    iap_u_tend_edge = gd_edge * u_tend_edge + 0.5d0 * u_edge / gd_edge * gd_tend_edge
+    iap_u_tend_edge = sqrt(gd_edge) * u_tend_edge + 0.5d0 * u_edge / gd_edge * gd_tend_edge
 
   end subroutine calc_u_tend_on_edge
 

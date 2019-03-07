@@ -27,9 +27,9 @@ contains
     call io_init()
 
     if (output_file_prefix /= 'N/A') then
-      call io_create_dataset(desc='TMCORE dataset', file_prefix=trim(output_file_prefix) // '.h0')
+      call io_create_dataset(desc='TMCORE dataset', file_prefix=output_file_prefix)
     else
-      call io_create_dataset(desc='TMCORE dataset', file_prefix=trim(case_name))
+      call io_create_dataset(desc='TMCORE dataset', file_prefix=case_name)
     end if
 
     call io_add_meta('dt', dt)

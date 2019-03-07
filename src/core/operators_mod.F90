@@ -108,7 +108,7 @@ contains
     do iVertex = lbound(f_vertex, 1), ubound(f_vertex, 1)
       do i = 1, nCellsOnVertex(iVertex)
         iCell = cellsOnVertex(i,iVertex)
-        
+
         f_vertex(iVertex) = f_vertex(iVertex) + f_cell(iCell) * kiteAreasOnVertex(i,iVertex)
       end do
     end do
@@ -127,7 +127,7 @@ contains
     do iVertex = lbound(f_vertex, 1), ubound(f_vertex, 1)
       do i = 1, nCellsOnVertex(iVertex)
         iCell = cellsOnVertex(i,iVertex)
-        
+
         f_cell(iCell) = f_cell(iCell) + f_vertex(iVertex) * kiteAreasOnVertex(i,iVertex) / areaCell(iCell)
       end do
     end do
@@ -139,7 +139,7 @@ contains
     real(real_kind), intent(in)  :: f_vertex(:)
     real(real_kind), intent(out) :: f_edge  (:)
 
-    integer iEdge, iVertex1, iVertex2
+    integer iEdge
 
     do iEdge = lbound(f_edge, 1), ubound(f_edge, 1)
       f_edge(iEdge) = 0.5d0 * ( f_vertex(verticesOnEdge(1,iEdge)) &

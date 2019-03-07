@@ -20,7 +20,7 @@ res_h@cnLevelSelectionMode = "ManualLevels"
 res_h@cnMinLevelValF = 5050
 res_h@cnMaxLevelValF = 5950
 res_h@cnLevelSpacingF = 50
-res_h@gsnPolar = "NH"
+; res_h@gsnPolar = "NH"
 res_h@mpOutlineOn = False
 res_h@gsnLeftString = "Height (m)"
 res_h@sfXArray = f->lonCell
@@ -50,8 +50,8 @@ do t = 0, dimsizes(file_names) - 1
   res_h@gsnRightString = cd_string(f->time, "Day %d Hour %H Min %M")
   plot0 = gsn_csm_contour_map(wks, f->h(0,:), res_h)
 
-  res_u@gsnRightString = cd_string(f->time, "Day %d Hour %H Min %M")
-  plot1 = gsn_csm_contour_map(wks, f->u(0,:), res_u)
+  ; res_u@gsnRightString = cd_string(f->time, "Day %d Hour %H Min %M")
+  ; plot1 = gsn_csm_contour_map(wks, f->u(0,:), res_u)
 
-  gsn_panel(wks, (/plot0,plot1/), (/2,1/), res_panel)
+  gsn_panel(wks, (/plot0/), (/1,1/), res_panel)
 end do
