@@ -52,8 +52,6 @@ contains
     case (2)
       call time_integrate_CRK4(old, new, spatial_operators, update_state)
     case (3)
-      call time_integrate_Gill4(old, new, spatial_operators, update_state)
-    case (4)
       call time_integrate_PC2(old, new, spatial_operators, update_state)
     case default
       stop 'Unknown integration scheme'
@@ -82,17 +80,6 @@ contains
     ! Under construction
 
   end subroutine time_integrate_CRK4
-
-  subroutine time_integrate_Gill4(old, new, spatial_operators, update_state)
-
-    integer, intent(in) :: old
-    integer, intent(in) :: new
-    procedure(spatial_operators_interface), pointer :: spatial_operators
-    procedure(update_state_interface), pointer :: update_state
-
-    ! Under construction
-
-  end subroutine time_integrate_Gill4
 
   subroutine time_integrate_PC2(old, new, spatial_operators, update_state)
 

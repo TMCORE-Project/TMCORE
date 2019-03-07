@@ -10,7 +10,7 @@ output_file_prefix = 'mz.2562'
 
 &tmcore
 conserve_energy = .true.
-time_scheme     = 4
+time_scheme     = 3
 pv_scheme       = 1
 apvm_weight     = 0.5
 mesh_file_path  = './x1.2562.grid.nc'
