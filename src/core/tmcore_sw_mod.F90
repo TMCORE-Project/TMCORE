@@ -64,17 +64,21 @@ contains
 
     call scalar_c2e_interp_operator(state(old)%cell%gd, state(old)%edge%gd)
     call iap_sw_operator(state(old)%edge%gd, state(old)%edge%u, state(old)%edge%iap_u)
+    call scalar_c2v_interp_operator(state(old)%cell%gd, state(old)%vertex%gd)
+    call curl_operator(state(old)%edge%u, state(old)%vertex%vor)
+    call calc_pv_on_vertex(state(old)%vertex%vor, state(old)%vertex%gd, state(old)%vertex%pv)
 
     call diag_run(state(old), static)
     call history_write(state(old), static)
+    call log_step()
 
     do while (.not. time_is_finished())
       call time_integrate(spatial_operators_ptr, update_state_ptr)
       call time_advance()
       call diag_run(state(old), static)
-      call history_write(state(old), static)
+      if (time_is_alerted('hist0.output')) call history_write(state(old), static)
       call log_step()
-      stop 'Check first step result!'
+      if (time_step == 2) stop 'Check result!'
     end do
 
   end subroutine tmcore_sw_run
@@ -95,7 +99,7 @@ contains
     call scalar_v2c_interp_operator(state%vertex%pv, state%cell%pv)
     call calc_pv_on_edge(state%edge%u, state%edge%v, state%edge%gd, tend%vertex%gd, state%vertex%pv, state%cell%pv, state%edge%pv)
     call calc_tangent_vor_flux(state%edge%u, state%edge%gd, state%edge%pv, state%edge%pv_flx)
-    call calc_u_tend_on_edge(state%edge%u, state%cell%ke, state%cell%gd, state%edge%gd, state%cell%ghs, &
+    call calc_u_tend_on_edge(state%edge%u, state%cell%ke, state%cell%gd, state%edge%gd, static%cell%ghs, &
                              state%edge%pv_flx, state%vertex%pv, tend%cell%gd, tend%edge%gd, &
                              tend%edge%u, tend%edge%iap_u)
 
@@ -185,7 +189,7 @@ contains
 
     type(state_type), intent(inout) :: state
 
-    state%total_mass = sum(state%cell%gd * areaCell) / sum(areaCell)
+    state%total_mass = sum(state%cell%gd * areaCell)
 
   end subroutine calc_total_mass
 
@@ -194,7 +198,7 @@ contains
     type(state_type),  intent(inout) :: state
     type(static_type), intent(in) :: static
 
-    state%total_energy = (sum(state%edge%u**2 * areaEdge) + sum((state%cell%gd + static%cell%ghs)**2 * areaCell)) / sum(areaCell)
+    state%total_energy = sum(state%edge%u**2 * areaEdge) + sum((state%cell%gd + static%cell%ghs)**2 * areaCell)
 
   end subroutine calc_total_energy
 
@@ -202,7 +206,7 @@ contains
 
     type(state_type), intent(inout) :: state
 
-    state%total_potential_enstropy = sum(state%vertex%gd * state%vertex%pv**2 * areaTriangle) / sum(areaTriangle)
+    state%total_potential_enstropy = sum(state%vertex%gd * state%vertex%pv**2 * areaTriangle)
 
   end subroutine calc_total_potential_enstropy
 

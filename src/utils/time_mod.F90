@@ -177,7 +177,7 @@ contains
     end if
 
     alert%period = timedelta(days_, hours_, minutes_, seconds_)
-    alert%last_time = start_time - alert%period
+    alert%last_time = start_time
     call alerts%insert(trim(name), alert)
 
   end subroutine time_add_alert

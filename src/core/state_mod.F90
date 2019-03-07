@@ -14,7 +14,6 @@ module state_mod
 
   type state_on_cell_type
     real(real_kind), allocatable :: gd    (:)
-    real(real_kind), allocatable :: ghs   (:)
     real(real_kind), allocatable :: u     (:)
     real(real_kind), allocatable :: v     (:)
     real(real_kind), allocatable :: div   (:)
@@ -85,7 +84,6 @@ contains
 
     ! Only consider serial case, leave parallel case for later work.
     if (.not. allocated(state%cell%gd    )) allocate(state%cell%gd    (nCells))
-    if (.not. allocated(state%cell%ghs   )) allocate(state%cell%ghs   (nCells))
     if (.not. allocated(state%cell%u     )) allocate(state%cell%u     (nCells))
     if (.not. allocated(state%cell%v     )) allocate(state%cell%v     (nCells))
     if (.not. allocated(state%cell%div   )) allocate(state%cell%div   (nCells))
@@ -110,7 +108,6 @@ contains
     type(state_type), intent(inout) :: state
 
     if (allocated(state%cell%gd    )) deallocate(state%cell%gd    )
-    if (allocated(state%cell%ghs   )) deallocate(state%cell%ghs   )
     if (allocated(state%cell%u     )) deallocate(state%cell%u     )
     if (allocated(state%cell%v     )) deallocate(state%cell%v     )
     if (allocated(state%cell%div   )) deallocate(state%cell%div   )

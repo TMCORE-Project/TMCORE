@@ -2,6 +2,7 @@ module diag_mod
 
   use params_mod
   use time_mod
+  use log_mod
   use static_mod
   use state_mod
 
@@ -58,6 +59,10 @@ contains
     call calc_total_mass_ptr(state)
     call calc_total_energy_ptr(state, static)
     call calc_total_potential_enstropy_ptr(state)
+
+    call log_add_diag('total_mass', state%total_mass)
+    call log_add_diag('total_energy', state%total_energy)
+    call log_add_diag('total_potential_enstropy', state%total_potential_enstropy)
 
   end subroutine diag_run
 

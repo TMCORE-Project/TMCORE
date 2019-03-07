@@ -27,7 +27,8 @@ contains
 
     select type (value)
     type is (integer)
-    type is (real)
+    type is (real(4))
+    type is (real(8))
     class default
       call log_error('Unsupported diagnostic value type!')
     end select
@@ -88,7 +89,9 @@ contains
       select type (value => iter%value)
       type is (integer)
         write(6, '(X, A)', advance='no') trim(to_string(value))
-      type is (real)
+      type is (real(4))
+        write(6, '(X, A)', advance='no') trim(to_string(value, 20))
+      type is (real(8))
         write(6, '(X, A)', advance='no') trim(to_string(value, 20))
       class default
         write(6, '(X, A)', advance='no') iter%key
