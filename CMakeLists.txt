@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.0 FATAL_ERROR)
 
 project(tmcore LANGUAGES Fortran)
 
-set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-line-length-none")
+set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-line-length-none -g -gdwarf -Og -fbacktrace -fcheck=all")
 
 if (DEFINED ENV{NETCDF} AND (NOT DEFINED ENV{NETCDF_ROOT}))
   set(ENV{NETCDF_ROOT} $ENV{NETCDF})
@@ -25,23 +25,31 @@ else ()
   endif ()
 endif ()
 
+add_subdirectory(lib/container)
+include_directories(${CMAKE_BINARY_DIR}/fortran_container)
+
+add_subdirectory(lib/datetime)
+
 set(source_files
-  src/CRK3.f90
-  src/CRK4.f90
-  src/Gill4.f90
-  src/L.f90
-  src/PC3.f90
-  src/diagnostics_tools.f90
-  src/integration.f90
-  src/mesh_info.f90
-  src/module_array.f90
-  src/module_para.f90
-  src/output_netCDF.f90
-  src/shallow_water_waves_test_mod.F90
-  src/test_cases.f90
+  src/utils/const_mod.F90
+  src/utils/string_mod.F90
+  src/utils/time_mod.F90
+  src/utils/log_mod.F90
+  src/utils/io_mod.F90
+  src/utils/history_mod.F90
+  src/core/params_mod.F90
+  src/core/mesh_mod.F90
+  src/core/static_mod.F90
+  src/core/state_mod.F90
+  src/core/tend_mod.F90
+  src/core/operators_mod.F90
+  src/core/diag_mod.F90
+  src/core/tmcore_common_mod.F90
+  src/core/tmcore_sw_mod.F90
+  src/test_cases/sw_model/mountain_zonal_flow_test_mod.F90
 )
 
 set(CMAKE_Fortran_MODULE_DIRECTORY "${CMAKE_BINARY_DIR}/.mods")
 
-add_executable(tmcore_test.exe src/tmcore.f90 ${source_files})
-target_link_libraries(tmcore_test.exe netcdf netcdff)
+add_executable(test_tmcore_sw.exe src/core/test_tmcore_sw.F90 ${source_files})
+target_link_libraries(test_tmcore_sw.exe fortran_datetime fortran_container netcdf netcdff)

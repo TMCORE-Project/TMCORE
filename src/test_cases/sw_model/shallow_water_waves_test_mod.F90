@@ -48,29 +48,26 @@
 !========================================================================
 
 module shallow_water_waves_test
-  use module_para, only: RKIND, omega, g, a, pi
+
+  use const_mod, a => radius
+
   implicit none
 
-  !integer, parameter :: dp = selected_real_kind(15,307)
-  integer, parameter :: dp = RKIND
+  integer, parameter :: dp = real_kind
 
 !========================================================================
 ! parameters
 !========================================================================
-  !real(kind=dp), parameter :: omega = 7.29212e-5_dp            ! Earth's angular frequency (rad/sec)
-  !real(kind=dp), parameter :: g     = 10.0_dp                  ! Earth's gravitational acceleration (m/sec^2)
-  !real(kind=dp), parameter :: a     = 6371220.0_dp             ! Earth's mean radius (m)
   real(kind=dp), parameter :: H0    = 5.0e3_dp                 ! Layer's mean depth (m)
   real(kind=dp), parameter :: P0    = 1.0e5_dp                 ! Reference pressure (Pa)
   real(kind=dp), parameter :: Rd    = 287.0_dp                 ! Gas const for dry air (J/kg/K)
-  !real(kind=dp), parameter :: pi    = 3.14159265358979323_dp   ! pi
 
   integer,       parameter :: n     = 5                        ! chosen mode number
   integer,       parameter :: k     = 10                       ! chosen wave number
   real(kind=dp), parameter :: &
        sigma = 0.5_dp + ( 0.25_dp + k**2 ) ** 0.5_dp           ! see Eq.10 in text
 
-  private :: dp, omega, g, a, H0, P0, Rd, pi, n, k, sigma
+  private :: H0, P0, Rd, n, k, sigma
 
   private :: getPsi,                &
              getAmplitudes
@@ -244,18 +241,18 @@ contains
     call getAmplitudes(latCell, blankCell, blankCell, hTilde   , waveFlag)
     call getAmplitudes(latEdge, uTilde   , vTilde   , blankEdge, waveFlag)
 
-    do n=1,size(time)
-        do iCell=1,size(lonCell)
-            h(iCell,n) = hTilde(iCell) * cos( k * lonCell(iCell) - k * C * time(n) )
-        end do
+    do n = 1, size(time)
+      do iCell = lbound(h, 1), ubound(h, 1)
+        h(iCell,n) = hTilde(iCell) * cos( k * lonCell(iCell) - k * C * time(n) )
+      end do
     end do
     h = h + H0
     
-    do n=1,size(time)
-        do iEdge=1,size(lonEdge)
-            u(iEdge,n) = uTilde(iEdge) * cos( k * lonEdge(iEdge) - k * C * time(n)               )
-            v(iEdge,n) = vTilde(iEdge) * cos( k * lonEdge(iEdge) - k * C * time(n) - 0.5_dp * pi )
-        end do
+    do n = 1, size(time)
+      do iEdge = lbound(u, 1), ubound(u, 1)
+        u(iEdge,n) = uTilde(iEdge) * cos( k * lonEdge(iEdge) - k * C * time(n)               )
+        v(iEdge,n) = vTilde(iEdge) * cos( k * lonEdge(iEdge) - k * C * time(n) - 0.5_dp * pi )
+      end do
     end do    
 
   end subroutine getFields
