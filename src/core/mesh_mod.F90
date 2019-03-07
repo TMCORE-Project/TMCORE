@@ -68,7 +68,7 @@ contains
     integer ncid, ierr
     integer dimid, varid
 
-    integer iCell, iEdge, iVertex
+    integer iCell, iEdge, iVertex, i
 
     ierr = nf90_open(mesh_file_path, nf90_nowrite, ncid)
 
@@ -282,17 +282,17 @@ contains
 
     nSignEdge = 0
     do iCell = 1, nCells
-      do iEdge = 1, nEdgesOnCell(iCell)
-        if (iCell == cellsOnEdge(1,edgesOnCell(iEdge,iCell))) nSignEdge(iEdge,iCell) =  1
-        if (iCell == cellsOnEdge(2,edgesOnCell(iEdge,iCell))) nSignEdge(iEdge,iCell) = -1
+      do i = 1, nEdgesOnCell(iCell)
+        if (iCell == cellsOnEdge(1,edgesOnCell(i,iCell))) nSignEdge(i,iCell) =  1
+        if (iCell == cellsOnEdge(2,edgesOnCell(i,iCell))) nSignEdge(i,iCell) = -1
       end do
     end do
 
     tSignEdge = 0
     do iVertex = 1, nVertices
-      do iEdge = 1, vertexDegree
-        if (iVertex == verticesOnEdge(1,edgesOnVertex(iEdge,iVertex))) tSignEdge(iEdge,iVertex) =  1
-        if (iVertex == verticesOnEdge(2,edgesOnVertex(iEdge,iVertex))) tSignEdge(iEdge,iVertex) = -1
+      do i = 1, vertexDegree
+        if (iVertex == verticesOnEdge(1,edgesOnVertex(i,iVertex))) tSignEdge(i,iVertex) =  1
+        if (iVertex == verticesOnEdge(2,edgesOnVertex(i,iVertex))) tSignEdge(i,iVertex) = -1
       end do
     end do
 

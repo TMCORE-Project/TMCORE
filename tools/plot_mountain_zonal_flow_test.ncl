@@ -22,7 +22,6 @@ res_h@cnMaxLevelValF = 5950
 res_h@cnLevelSpacingF = 50
 ; res_h@gsnPolar = "NH"
 res_h@mpOutlineOn = False
-res_h@mpCenterLonF = 180
 res_h@gsnLeftString = "Height (m)"
 res_h@sfXArray = f->lonCell
 res_h@sfYArray = f->latCell

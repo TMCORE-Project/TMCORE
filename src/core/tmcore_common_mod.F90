@@ -2,6 +2,7 @@ module tmcore_common_mod
 
   use params_mod
   use time_mod, old => old_time_idx, new => new_time_idx
+  use log_mod
   use mesh_mod
   use state_mod
   use tend_mod
@@ -66,8 +67,8 @@ contains
     procedure(spatial_operators_interface), pointer :: spatial_operators
     procedure(update_state_interface), pointer :: update_state
     
-    integer             :: one   = -1,&
-                           two   = -2,&
+    integer             :: one   = -1, &
+                           two   = -2, &
                            three = -3
     
     real(real_kind) phi3_norm2, R1R2, R1R3, R2R3, beta
@@ -94,7 +95,7 @@ contains
       R2R3       = inner_product(tend(two  ),tend(three))
       
       beta       = (2.d0*R1R2 - R1R3 + 2.d0*R2R3)/(3.d0*phi3_norm2)
-      !print*,beta * dt
+      call log_add_diag('beta', beta)
     else
       beta = 1.0d0
     end if
@@ -140,7 +141,7 @@ contains
       R3R4       = inner_product(tend(three),tend(four ))
       
       beta       = (R1R2 + R2R3 + R3R4)/(3.d0*phi4_norm2)
-      !print*,beta * dt
+      call log_add_diag('beta', beta)
     else
       beta = 1.0d0
     end if
@@ -170,6 +171,7 @@ contains
       ip1 = inner_product(tend(old), tend(new))
       ip2 = inner_product(tend(new), tend(new))
       beta = merge(ip1 / ip2, 1.0d0, ip1 /= 0.0d0 .and. ip2 /= 0.0d0)
+      call log_add_diag('beta', beta)
     else
       beta = 1.0d0
     end if
@@ -270,7 +272,7 @@ contains
     case (6)
       call calc_pv_on_edge_smoothed_order2()
     case default
-      stop 'Unknow PV scheme, please choose from 1 (APVM), 2 (CLUST), 3 (LUST), 4 (conservative APVM), 5 (order2), 6 (smoothed order2)!'
+      call log_error('Unknow PV scheme, please choose from 1 (APVM), 2 (CLUST), 3 (LUST), 4 (conservative APVM), 5 (order2), 6 (smoothed order2)!')
     end select
 
   end subroutine calc_pv_on_edge
@@ -287,7 +289,7 @@ contains
 
     call scalar_v2e_interp_operator(pv_vertex, pv_edge)
 
-    if (apvm_weight /= 0.d0) then
+    if (apvm_weight /= 0.0d0) then
       do iEdge = lbound(pv_edge, 1), ubound(pv_edge, 1)
         pv_edge(iEdge) = pv_edge(iEdge) - apvm_weight * dt * ( v_edge(iEdge) * (pv_vertex(verticesOnEdge(2,iEdge)) - pv_vertex(verticesOnEdge(1,iEdge))) / dvEdge(iEdge) &
                                                              + u_edge(iEdge) * (pv_cell  (cellsOnEdge   (2,iEdge)) - pv_cell  (cellsOnEdge   (1,iEdge))) / dcEdge(iEdge) &

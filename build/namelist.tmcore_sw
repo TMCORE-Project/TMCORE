@@ -1,19 +1,19 @@
 &time_control
 run_days = 25
-dt = 600
+dt = 360
 /
 
 &io_control
 history_periods = '24 hours'
-output_file_prefix = 'mz.2562'
+output_file_prefix = 'mz.40962'
 /
 
 &tmcore
 conserve_energy = .true.
-time_scheme     = 3
+time_scheme     = 2
 pv_scheme       = 1
 apvm_weight     = 0.5
-mesh_file_path  = './x1.2562.grid.nc'
+mesh_file_path  = './x1.40962.grid.nc'
 /
 
 &test_case
