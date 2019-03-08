@@ -52,6 +52,9 @@ set(source_files
   src/core/tmcore_sw_mod.F90
   src/test_cases/test_cases_mod.F90
   src/test_cases/sw_model/mountain_zonal_flow_test_mod.F90
+  src/test_cases/sw_model/steady_geostrophic_flow_test_mod.F90
+  src/test_cases/sw_model/rossby_haurwitz_wave_test_mod.F90
+  src/test_cases/sw_model/linearized_rossby_wave_test_mod.F90
 )
 
 set(CMAKE_Fortran_MODULE_DIRECTORY "${CMAKE_BINARY_DIR}/.mods")

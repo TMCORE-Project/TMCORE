@@ -1,7 +1,7 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/contrib/cd_string.ncl"
 
 if (.not. isdefined("file_prefix")) then
-  file_prefix = systemfunc("a=$(ls *.h0.*.nc | head -n1) && echo ${a/\.h0.*/}")
+  file_prefix = systemfunc("bash -c 'a=$(ls *.h0.*.nc | head -n1) && echo ${a/\.h0.*/}'")
   system("echo '[Notice]: Use file_prefix " + file_prefix + ".'")
 end if
 
@@ -17,8 +17,8 @@ res_h@gsnFrame = False
 res_h@cnLinesOn = False
 res_h@cnFillOn = True
 res_h@cnLevelSelectionMode = "ManualLevels"
-res_h@cnMinLevelValF = 5050
-res_h@cnMaxLevelValF = 5950
+;res_h@cnMinLevelValF = 5050
+;res_h@cnMaxLevelValF = 5950
 res_h@cnLevelSpacingF = 50
 ; res_h@gsnPolar = "NH"
 res_h@mpOutlineOn = False

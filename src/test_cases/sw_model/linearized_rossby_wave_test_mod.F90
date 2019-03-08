@@ -47,12 +47,20 @@
 !       analytic solutions.
 !========================================================================
 
-module shallow_water_waves_test
+module linearized_rossby_wave_test_mod
 
+  use params_mod
+  use mesh_mod
+  use static_mod
+  use state_mod
   use const_mod, a => radius
 
   implicit none
+  
+  private
 
+  public linearized_rossby_wave_test_set_initial_condition
+  
   integer, parameter :: dp = real_kind
 
 !========================================================================
@@ -67,18 +75,34 @@ module shallow_water_waves_test
   real(kind=dp), parameter :: &
        sigma = 0.5_dp + ( 0.25_dp + k**2 ) ** 0.5_dp           ! see Eq.10 in text
 
-  private :: H0, P0, Rd, n, k, sigma
+  contains
+    
+  subroutine linearized_rossby_wave_test_set_initial_condition()
+    implicit none
+    
+    real (kind=real_kind) :: time(1)
+    real (kind=real_kind) :: uu   (nEdges,1),vv  (nEdges,1),hh(nCells,1)
+    real (kind=real_kind) :: theta(nEdges  ),beta(nEdges  )
+        
+    write(6, *) '[Notice]: Use linearized rossby wave initial condition.'
+    
+    time(1) = 0
 
-  private :: getPsi,                &
-             getAmplitudes
+    call getFields(latCell,lonCell,latEdge,lonEdge,time,uu,vv,hh,0)
+    
+    theta = datan(vv(:,1)/uu(:,1))
+    where(vv(:,1)>0.and.uu(:,1)<0)theta = theta+pi
+    where(vv(:,1)<0.and.uu(:,1)<0)theta = theta-pi
+    
+    beta             = theta-angleEdge
+    state(1)%edge%u  = dcos(beta)*dsqrt(uu(:,1)*uu(:,1)+vv(:,1)*vv(:,1))
+        
+    state(1)%cell%gd = hh(:,1)*g
+    
+    static%cell%ghs  = 0.d0
 
-  public  :: getPhaseSpeed,         &
-             getFields,             &
-             getSurfacePressure,    &
-             getInitialTemperature
-
-contains
-
+  end subroutine linearized_rossby_wave_test_set_initial_condition
+    
 !========================================================================
 ! phase speed
 !========================================================================
@@ -137,7 +161,7 @@ contains
     real(kind=dp), intent(inout) :: dpsi(:)           ! meridional derivative of psi
 
     real(kind=dp), parameter     :: amp = 1.0e-8_dp   ! arbitrary amplitude for linear waves
-    real(kind=dp)                :: C5(size(lat))     ! see Eq. 19 in text
+    real(kind=dp)                :: C5 (size(lat))    ! see Eq. 19 in text
     real(kind=dp)                :: C5p(size(lat))    ! meridional derivative of C5
 
     real(kind=dp), parameter     :: a3 = sigma * ( sigma + 1 ) * ( sigma + 2 )
@@ -171,17 +195,24 @@ contains
     real(kind=dp), intent(inout) :: vTilde(:)         ! see Eqs. 12a and 15b in text
     real(kind=dp), intent(inout) :: hTilde(:)         ! see Eqs. 12b and 15a in text
 
-    real(kind=dp)                :: Kp(size(lat))     ! see Eq. 13 in text
-    real(kind=dp)                :: Km(size(lat))     ! see Eq. 13 in text
-    real(kind=dp)                :: W1(size(lat))     ! see Eq. 16 in text
-    real(kind=dp)                :: W2(size(lat))     ! see Eq. 17 in text
+    real(kind=dp), allocatable   :: Kp(:)             ! see Eq. 13 in text
+    real(kind=dp), allocatable   :: Km(:)             ! see Eq. 13 in text
+    real(kind=dp), allocatable   :: W1(:)             ! see Eq. 16 in text
+    real(kind=dp), allocatable   :: W2(:)             ! see Eq. 17 in text
     real(kind=dp)                :: C                 ! phase speed (rad/sec)
-    real(kind=dp)                :: psi(size(lat))    ! see Eq. 13 in text
-    real(kind=dp)                :: dpsi(size(lat))   ! meridional derivative of psi
+    real(kind=dp), allocatable   :: psi (:)           ! see Eq. 13 in text
+    real(kind=dp), allocatable   :: dpsi(:)           ! meridional derivative of psi
 
     real(kind=dp),    parameter  :: r2 = 0.5_dp
     real(kind=dp),    parameter  :: o2 = 2.0_dp * omega
 
+    allocate(Kp  (size(lat)) ,&
+             Km  (size(lat)) ,&
+             W1  (size(lat)) ,&
+             W2  (size(lat)) ,&
+             psi (size(lat)) ,&
+             dpsi(size(lat)))
+    
     call getPhaseSpeed(C,waveFlag)
     call getPsi(lat,psi,dpsi)
 
@@ -228,15 +259,22 @@ contains
     real(kind=dp), intent(inout) :: v(:,:)              ! meridional velocity field
     real(kind=dp), intent(inout) :: h(:,:)              ! free-surface height anomaly field
 
-    real(kind=dp)                :: uTilde(size(latEdge))   ! see Eq. 18 in text
-    real(kind=dp)                :: vTilde(size(latEdge))   ! see Eqs. 12a and 15b in text
-    real(kind=dp)                :: hTilde(size(latCell))   ! see Eqs. 12b and 15a in text
+    real(kind=dp), allocatable   :: uTilde(:)   ! see Eq. 18 in text
+    real(kind=dp), allocatable   :: vTilde(:)   ! see Eqs. 12a and 15b in text
+    real(kind=dp), allocatable   :: hTilde(:)   ! see Eqs. 12b and 15a in text
     real(kind=dp)                :: C                       ! phase speed (rad/sec)
     
-    real(kind=dp)                :: blankCell(size(latCell))   ! working array
-    real(kind=dp)                :: blankEdge(size(latEdge))   ! working array
+    real(kind=dp), allocatable   :: blankCell(:)   ! working array
+    real(kind=dp), allocatable   :: blankEdge(:)   ! working array
     integer                      :: n,iCell,iEdge
 
+    allocate(uTilde   (size(latEdge)) ,&
+             vTilde   (size(latEdge)) ,&
+             hTilde   (size(latCell)) ,&
+             blankCell(size(latCell)) ,&
+             blankEdge(size(latEdge)) ,&
+            )
+    
     call getPhaseSpeed(C,waveFlag)
     call getAmplitudes(latCell, blankCell, blankCell, hTilde   , waveFlag)
     call getAmplitudes(latEdge, uTilde   , vTilde   , blankEdge, waveFlag)
@@ -284,4 +322,4 @@ contains
 
   end subroutine getInitialTemperature
 
-end module shallow_water_waves_test
+end module linearized_rossby_wave_test_mod
