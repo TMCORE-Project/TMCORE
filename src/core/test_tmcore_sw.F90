@@ -3,7 +3,7 @@ program test_tmcore_sw
   use params_mod
   use log_mod
   use tmcore_sw_mod
-  use mountain_zonal_flow_test_mod
+  use test_cases_mod
 
   implicit none
 
@@ -13,12 +13,7 @@ program test_tmcore_sw
 
   call tmcore_sw_init('./namelist.tmcore_sw')
 
-  select case (case_name)
-  case ('mountain_zonal_flow')
-    call mountain_zonal_flow_test_set_initial_condition()
-  case default
-    call log_error('Unknown test case ' // trim(case_name) // '!')
-  end select
+  call test_cases_set_initial_condition()
 
   call tmcore_sw_run()
 

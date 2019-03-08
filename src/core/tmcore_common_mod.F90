@@ -194,8 +194,8 @@ contains
                           * areaEdge(edgesOnCell(1:nEdgesOnCell(iCell),iCell))    &
                           ) * 0.25d0
     end do
-
     ke_cell = ke_cell / areaCell
+
   end subroutine calc_kinetic_energy
 
   subroutine calc_tangent_wind(u_edge, v_edge)
@@ -368,8 +368,6 @@ contains
 
     real(real_kind), intent(in)  :: u_tend_edge    (:)
     real(real_kind), intent(out) :: vor_tend_vertex(:)
-
-    integer iVertex
 
     call curl_operator(u_tend_edge, vor_tend_vertex)
 

@@ -50,6 +50,7 @@ set(source_files
   src/core/diag_mod.F90
   src/core/tmcore_common_mod.F90
   src/core/tmcore_sw_mod.F90
+  src/test_cases/test_cases_mod.F90
   src/test_cases/sw_model/mountain_zonal_flow_test_mod.F90
 )
 
