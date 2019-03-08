@@ -85,10 +85,11 @@ contains
 
     call spatial_operators(state(three), tend(three))
 
+
+    tend(new)%cell%gd    = (tend(one)%cell%gd    + 4.d0*tend(two)%cell%gd    + tend(three)%cell%gd   )/6.d0
+    tend(new)%edge%iap_u = (tend(one)%edge%iap_u + 4.d0*tend(two)%edge%iap_u + tend(three)%edge%iap_u)/6.d0
+    
     if (conserve_energy) then
-      tend(new)%cell%gd    = (tend(one)%cell%gd    + 4.d0*tend(two)%cell%gd    + tend(three)%cell%gd   )/6.d0
-      tend(new)%edge%iap_u = (tend(one)%edge%iap_u + 4.d0*tend(two)%edge%iap_u + tend(three)%edge%iap_u)/6.d0
-      
       phi3_norm2 = inner_product(tend(new  ),tend(new  ))
       R1R2       = inner_product(tend(one  ),tend(two  ))
       R1R3       = inner_product(tend(one  ),tend(three))
@@ -131,10 +132,10 @@ contains
     
     call spatial_operators(state(four), tend(four))
 
+    tend(new)%cell%gd    = (tend(one)%cell%gd    + 2.d0*tend(two)%cell%gd    + 2.d0*tend(three)%cell%gd    + tend(four)%cell%gd   )/6.d0
+    tend(new)%edge%iap_u = (tend(one)%edge%iap_u + 2.d0*tend(two)%edge%iap_u + 2.d0*tend(three)%edge%iap_u + tend(four)%edge%iap_u)/6.d0
+
     if (conserve_energy) then
-      tend(new)%cell%gd    = (tend(one)%cell%gd    + 2.d0*tend(two)%cell%gd    + 2.d0*tend(three)%cell%gd    + tend(four)%cell%gd   )/6.d0
-      tend(new)%edge%iap_u = (tend(one)%edge%iap_u + 2.d0*tend(two)%edge%iap_u + 2.d0*tend(three)%edge%iap_u + tend(four)%edge%iap_u)/6.d0
-      
       phi4_norm2 = inner_product(tend(new  ),tend(new  ))
       R1R2       = inner_product(tend(one  ),tend(two  ))
       R2R3       = inner_product(tend(two  ),tend(three))
