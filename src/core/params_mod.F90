@@ -38,15 +38,20 @@ module params_mod
   logical :: conserve_energy = .true.
   real(real_kind) :: apvm_weight = 0.5
   real(real_kind) :: clust_weight = 0.25
+  integer         :: adv_order = 2
+  logical         :: adv_monotonic = .false.
+  real(real_kind) :: coef_3rd_order = 1.d0
   character(max_file_path_len) mesh_file_path
 
   namelist /tmcore/       &
-    time_scheme,          &
-    energy_scheme,        &
-    pv_scheme,            &
-    conserve_energy,      &
-    apvm_weight,          &
-    clust_weight,         &
+    time_scheme          ,&
+    energy_scheme        ,&
+    pv_scheme            ,&
+    conserve_energy      ,&
+    apvm_weight          ,&
+    clust_weight         ,&
+    adv_order            ,&
+    adv_monotonic        ,&
     mesh_file_path
 
   character(max_name_len) case_name

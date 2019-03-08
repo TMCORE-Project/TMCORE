@@ -85,7 +85,6 @@ contains
 
     call spatial_operators(state(three), tend(three))
 
-
     tend(new)%cell%gd    = (tend(one)%cell%gd    + 4.d0*tend(two)%cell%gd    + tend(three)%cell%gd   )/6.d0
     tend(new)%edge%iap_u = (tend(one)%edge%iap_u + 4.d0*tend(two)%edge%iap_u + tend(three)%edge%iap_u)/6.d0
     

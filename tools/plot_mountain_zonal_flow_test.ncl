@@ -11,6 +11,9 @@ f = addfile(file_names(0), "r")
 
 wks = gsn_open_wks("pdf", file_prefix)
 
+pi  = 4. * atan(1.)
+r2d = 180./pi
+
 res_h = True
 res_h@gsnDraw = False
 res_h@gsnFrame = False
@@ -23,8 +26,8 @@ res_h@cnLevelSpacingF = 50
 ; res_h@gsnPolar = "NH"
 res_h@mpOutlineOn = False
 res_h@gsnLeftString = "Height (m)"
-res_h@sfXArray = f->lonCell
-res_h@sfYArray = f->latCell
+res_h@sfXArray = f->lonCell*r2d
+res_h@sfYArray = f->latCell*r2d
 
 res_u = True
 res_u@gsnDraw = False
@@ -37,8 +40,8 @@ res_u@cnMaxLevelValF =  20
 res_u@cnLevelSpacingF = 2
 res_u@gsnPolar = "NH"
 res_u@gsnLeftString = "Edge normal wind speed (m/s)"
-res_u@sfXArray = f->lonEdge
-res_u@sfYArray = f->latEdge
+res_u@sfXArray = f->lonEdge*r2d
+res_u@sfYArray = f->latEdge*r2d
 
 res_panel = True
 ; res_panel@gsnMaximize = True
@@ -47,7 +50,7 @@ res_panel@gsnPanelRowSpec = True
 do t = 0, dimsizes(file_names) - 1
   system("echo '=> " + file_names(t) + "'")
   f = addfile(file_names(t), "r")
-  res_h@gsnRightString = cd_string(f->time, "Day %d Hour %H Min %M")
+  res_h@gsnRightString = cd_string(f->Time, "Day %d Hour %H Min %M")
   plot0 = gsn_csm_contour_map(wks, f->h(0,:), res_h)
 
   ; res_u@gsnRightString = cd_string(f->time, "Day %d Hour %H Min %M")

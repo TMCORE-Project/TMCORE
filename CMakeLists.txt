@@ -47,6 +47,7 @@ set(source_files
   src/core/state_mod.F90
   src/core/tend_mod.F90
   src/core/operators_mod.F90
+  src/core/advection_mod.F90
   src/core/diag_mod.F90
   src/core/tmcore_common_mod.F90
   src/core/tmcore_sw_mod.F90

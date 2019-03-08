@@ -3,6 +3,7 @@ module tmcore_sw_mod
   use params_mod
   use log_mod
   use mesh_mod
+  use advection_mod
   use time_mod, old => old_time_idx, new => new_time_idx
   use static_mod
   use state_mod
@@ -44,6 +45,7 @@ contains
     call log_init()
     call time_init()
     call mesh_init()
+    call advecion_init()
     call static_init()
     call state_init()
     call tend_init()
@@ -63,12 +65,12 @@ contains
   end subroutine tmcore_sw_final
 
   subroutine tmcore_sw_run()
-
-    call scalar_c2e_interp_operator(state(old)%cell%gd   , state(old)%edge%gd                           )
-    call iap_sw_operator           (state(old)%edge%gd   , state(old)%edge%u     , state(old)%edge%iap_u)
-    call scalar_c2v_interp_operator(state(old)%cell%gd   , state(old)%vertex%gd                         )
-    call curl_operator             (state(old)%edge%u    , state(old)%vertex%vor                        )
-    call calc_pv_on_vertex         (state(old)%vertex%vor, state(old)%vertex%gd  , state(old)%vertex%pv )
+  
+    call scalar_c2e_interp_operator(state(old)%cell  %gd   , state(old)%edge  %gd    , adv_order            , state(old)%edge%u, adv_monotonic)
+    call iap_sw_operator           (state(old)%edge  %gd   , state(old)%edge  %u     , state(old)%edge%iap_u                                  )
+    call scalar_c2v_interp_operator(state(old)%cell  %gd   , state(old)%vertex%gd                                                             )
+    call curl_operator             (state(old)%edge  %u    , state(old)%vertex%vor                                                            )
+    call calc_pv_on_vertex         (state(old)%vertex%vor  , state(old)%vertex%gd    , state(old)%vertex%pv                                   )
 
     call diag_run(state(old), static)
     call history_write(state(old), static)
@@ -78,11 +80,11 @@ contains
       call time_integrate(spatial_operators_ptr, update_state_ptr)
       call time_advance()
       
-      call scalar_c2e_interp_operator(state(old)%cell  %gd , state(old)%edge  %gd                         )
-      call inverse_iap_sw_operator   (state(old)%edge  %gd , state(old)%edge  %iap_u, state(old)%edge  %u )
-      call scalar_c2v_interp_operator(state(old)%cell  %gd , state(old)%vertex%gd                         )
-      call curl_operator             (state(old)%edge  %u  , state(old)%vertex%vor                        )
-      call calc_pv_on_vertex         (state(old)%vertex%vor, state(old)%vertex%gd   , state(old)%vertex%pv)
+      call scalar_c2e_interp_operator(state(old)%cell  %gd , state(old)%edge  %gd   , adv_order            , state(old)%edge%u, adv_monotonic)
+      call inverse_iap_sw_operator   (state(old)%edge  %gd , state(old)%edge  %iap_u, state(old)%edge  %u                                    )
+      call scalar_c2v_interp_operator(state(old)%cell  %gd , state(old)%vertex%gd                                                            )
+      call curl_operator             (state(old)%edge  %u  , state(old)%vertex%vor                                                           )
+      call calc_pv_on_vertex         (state(old)%vertex%vor, state(old)%vertex%gd   , state(old)%vertex%pv                                   )
       call diag_run(state(old), static)
       
       if (time_is_alerted('hist0.output')) call history_write(state(old), static)
@@ -96,10 +98,10 @@ contains
     type(state_type), intent(inout) :: state
     type(tend_type),  intent(inout) :: tend
 
-    call scalar_c2e_interp_operator(state%cell  %gd     , state%edge  %gd                    )
+    call scalar_c2e_interp_operator(state%cell  %gd     , state%edge  %gd   , adv_order        , state%edge%u, adv_monotonic)
     call inverse_iap_sw_operator   (state%edge  %gd     , state%edge  %iap_u, state%edge%u   )
     call calc_gd_tend_on_cell      (state%edge  %u      , state%edge  %gd   , tend %cell%gd  )
-    call scalar_c2e_interp_operator(tend %cell  %gd     , tend %edge  %gd                    )
+    call scalar_c2e_interp_operator(tend %cell  %gd     , tend %edge  %gd   , adv_order        , state%edge%u, adv_monotonic)
     call scalar_c2v_interp_operator(tend %cell  %gd     , tend %vertex%gd                    )
     call scalar_c2v_interp_operator(state%cell  %gd     , state%vertex%gd                    )
     call curl_operator             (state%edge  %u      , state%vertex%vor                   )

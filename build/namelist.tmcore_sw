@@ -1,23 +1,25 @@
 &time_control
-run_days = 25
-dt = 300
+run_days = 33
+dt       = 360
 /
 
 &io_control
-history_periods = '24 hours'
-output_file_prefix = 'mz.2562'
-frames_per_file = '1 months'
+history_periods    = '24 hours'
+output_file_prefix = 'rh.40962'
+frames_per_file    = '2 months'
 /
 
 &tmcore
-conserve_energy = .true.
+conserve_energy = .false.
 time_scheme     = 2
-pv_scheme       = 4
+pv_scheme       = 1
 apvm_weight     = 0.5
-mesh_file_path  = './x1.2562.grid.nc'
+adv_order       = 3
+adv_monotonic   = .true.
+mesh_file_path  = './x1.40962.grid.nc'
 /
 
 &test_case
 ! Choose from 'mountain_zonal_flow', 'steady_geostrophic_flow', 'rossby_haurwitz_wave', 'linearized_rossby_wave'
-case_name = 'linearized_rossby_wave'
+case_name = 'rossby_haurwitz_wave'
 /
