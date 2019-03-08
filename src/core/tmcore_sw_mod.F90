@@ -25,6 +25,7 @@ module tmcore_sw_mod
   procedure(calc_total_mass_interface), pointer :: calc_total_mass_ptr
   procedure(calc_total_energy_interface), pointer :: calc_total_energy_ptr
   procedure(calc_total_potential_enstropy_interface), pointer :: calc_total_potential_enstropy_ptr
+  procedure(calc_total_absolute_vorticity_interface), pointer :: calc_total_absolute_vorticity_ptr
 
 contains
 
@@ -37,6 +38,7 @@ contains
     calc_total_mass_ptr => calc_total_mass
     calc_total_energy_ptr => calc_total_energy
     calc_total_potential_enstropy_ptr => calc_total_potential_enstropy
+    calc_total_absolute_vorticity_ptr => calc_total_absolute_vorticity
 
     call params_parse_namelist(namelist_file_path)
     call log_init()
@@ -45,7 +47,7 @@ contains
     call static_init()
     call state_init()
     call tend_init()
-    call diag_init(calc_total_mass_ptr, calc_total_energy_ptr, calc_total_potential_enstropy_ptr)
+    call diag_init(calc_total_mass_ptr, calc_total_energy_ptr, calc_total_potential_enstropy_ptr, calc_total_absolute_vorticity_ptr)
     call history_init()
 
   end subroutine tmcore_sw_init
@@ -201,4 +203,11 @@ contains
 
   end subroutine calc_total_angular_momentum
 
+  subroutine calc_total_absolute_vorticity(state)
+
+    type(state_type), intent(inout) :: state
+
+    state%total_absolute_vorticity = sum((state%vertex%vor + fVertex) * areaTriangle) / sum(areaTriangle)
+
+  end subroutine calc_total_absolute_vorticity
 end module tmcore_sw_mod

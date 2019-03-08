@@ -375,12 +375,4 @@ contains
 
   end subroutine calc_vor_tend_on_vertex
 
-  subroutine calc_total_absolute_vorticity(state)
-
-    type(state_type), intent(inout) :: state
-
-    state%total_absolute_vorticity = sum((state%vertex%vor + fVertex) * areaTriangle) / sum(areaTriangle)
-
-  end subroutine calc_total_absolute_vorticity
-
 end module tmcore_common_mod

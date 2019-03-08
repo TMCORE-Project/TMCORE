@@ -13,7 +13,8 @@ module diag_mod
   public calc_total_mass_interface
   public calc_total_energy_interface
   public calc_total_potential_enstropy_interface
-
+  public calc_total_absolute_vorticity_interface
+  
   interface
     subroutine calc_total_mass_interface(state)
       import state_type
@@ -31,38 +32,48 @@ module diag_mod
       import state_type
       type(state_type), intent(inout) :: state
     end subroutine calc_total_potential_enstropy_interface
+    
+    subroutine calc_total_absolute_vorticity_interface(state)
+      import state_type
+      type(state_type), intent(inout) :: state
+    end subroutine calc_total_absolute_vorticity_interface
   end interface
 
-  procedure(calc_total_mass_interface), pointer :: calc_total_mass_ptr
-  procedure(calc_total_energy_interface), pointer :: calc_total_energy_ptr
+  procedure(calc_total_mass_interface              ), pointer :: calc_total_mass_ptr
+  procedure(calc_total_energy_interface            ), pointer :: calc_total_energy_ptr
   procedure(calc_total_potential_enstropy_interface), pointer :: calc_total_potential_enstropy_ptr
+  procedure(calc_total_absolute_vorticity_interface), pointer :: calc_total_absolute_vorticity_ptr
 
 contains
 
-  subroutine diag_init(calc_total_mass, calc_total_energy, calc_total_potential_enstropy)
+  subroutine diag_init(calc_total_mass, calc_total_energy, calc_total_potential_enstropy, calc_total_absolute_vorticity)
 
-    procedure(calc_total_mass_interface), pointer :: calc_total_mass
-    procedure(calc_total_energy_interface), pointer :: calc_total_energy
+    procedure(calc_total_mass_interface              ), pointer :: calc_total_mass
+    procedure(calc_total_energy_interface            ), pointer :: calc_total_energy
     procedure(calc_total_potential_enstropy_interface), pointer :: calc_total_potential_enstropy
+    procedure(calc_total_absolute_vorticity_interface), pointer :: calc_total_absolute_vorticity
 
-    calc_total_mass_ptr => calc_total_mass
-    calc_total_energy_ptr => calc_total_energy
+    calc_total_mass_ptr               => calc_total_mass
+    calc_total_energy_ptr             => calc_total_energy
     calc_total_potential_enstropy_ptr => calc_total_potential_enstropy
+    calc_total_absolute_vorticity_ptr => calc_total_absolute_vorticity
 
   end subroutine diag_init
 
   subroutine diag_run(state, static)
 
     type(state_type),  intent(inout) :: state
-    type(static_type), intent(in) :: static
+    type(static_type), intent(in   ) :: static
 
     call calc_total_mass_ptr(state)
     call calc_total_energy_ptr(state, static)
     call calc_total_potential_enstropy_ptr(state)
+    call calc_total_absolute_vorticity_ptr(state)
 
     call log_add_diag('total_mass', state%total_mass)
     call log_add_diag('total_energy', state%total_energy)
     call log_add_diag('total_potential_enstropy', state%total_potential_enstropy)
+    call log_add_diag('total_absolute_vorticity', state%total_absolute_vorticity)
 
   end subroutine diag_run
 
