@@ -42,7 +42,7 @@ contains
     integer, intent(in), optional :: line
 
     if (present(file) .and. present(line)) then
-      write(6, *) '[Notice]: ' // trim(file) // ': ' // to_string(line) // ': ' // trim(message)
+      write(6, *) '[Notice]: ' // trim(file) // ':' // trim(to_string(line)) // ': ' // trim(message)
     else
       write(6, *) '[Notice]: ' // trim(message)
     end if
@@ -56,7 +56,7 @@ contains
     integer, intent(in), optional :: line
 
     if (present(file) .and. present(line)) then
-      write(6, *) '[Warning]: ' // trim(file) // ': ' // to_string(line) // ': ' // trim(message)
+      write(6, *) '[Warning]: ' // trim(file) // ':' // trim(to_string(line)) // ': ' // trim(message)
     else
       write(6, *) '[Warning]: ' // trim(message)
     end if
@@ -70,7 +70,7 @@ contains
     integer, intent(in), optional :: line
 
     if (present(file) .and. present(line)) then
-      write(6, *) '[Error]: ' // trim(file) // ': ' // to_string(line) // ': ' // trim(message)
+      write(6, *) '[Error]: ' // trim(file) // ':' // trim(to_string(line)) // ': ' // trim(message)
     else
       write(6, *) '[Error]: ' // trim(message)
     end if

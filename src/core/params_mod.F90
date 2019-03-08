@@ -24,11 +24,13 @@ module params_mod
   character(max_name_len) history_periods(1)
   character(max_name_len) :: time_units = 'days'
   character(max_file_path_len) :: output_file_prefix = 'N/A'
+  character(max_name_len) :: frames_per_file = 'N/A'
 
   namelist /io_control/   &
     history_periods,      &
     time_units,           &
-    output_file_prefix
+    output_file_prefix,   &
+    frames_per_file
 
   integer time_scheme                 ! Time integration scheme
   integer energy_scheme               ! Total energy conservation scheme, 1: tau_n = 2.d0*(phi,F)/(phi,phi); 2: tau_n = beta_n*dt

@@ -30,6 +30,8 @@ module io_mod
     character(256) author
     character(256) file_prefix_or_path
     character(10) mode
+    character(10) :: new_file_alert = 'N/A'
+    character(256) last_file_path
     type(var_type), pointer :: time_var => null()
     type(hash_table_type) metas
     type(hash_table_type) dims
@@ -100,7 +102,7 @@ contains
 
   end subroutine io_init
 
-  subroutine io_create_dataset(name, desc, file_prefix, file_path, mode, period)
+  subroutine io_create_dataset(name, desc, file_prefix, file_path, mode, period, frames_per_file)
 
     character(*), intent(in), optional :: name
     character(*), intent(in), optional :: desc
@@ -108,12 +110,14 @@ contains
     character(*), intent(in), optional :: file_path
     character(*), intent(in), optional :: mode
     character(*), intent(in), optional :: period
+    character(*), intent(in), optional :: frames_per_file
 
-    character(30) name_, mode_, period_, period_value, period_unit
+    character(30) name_, mode_, period_, time_value, time_units
     character(256) desc_, file_prefix_, file_path_
     type(dataset_type) dataset
     logical is_exist
     integer i
+    real value
 
     if (present(name)) then
       name_ = name
@@ -183,14 +187,16 @@ contains
       dataset%file_prefix_or_path = trim(dataset%file_prefix_or_path) // '.' // trim(name_)
     end if
     dataset%mode = mode_
+
+    ! Add alert for IO action.
     if (period_ /= 'once') then
-      period_value = string_split(period_, 1)
-      period_unit = string_split(period_, 2)
-      read(period_value, *) dataset%period 
+      time_value = string_split(period_, 1)
+      time_units = string_split(period_, 2)
+      read(time_value, *) dataset%period 
     else
-      period_unit = 'once'
+      time_units = 'once'
     end if
-    select case (period_unit)
+    select case (time_units)
     case ('days')
       dataset%period = dataset%period * 86400
     case ('hours')
@@ -208,6 +214,22 @@ contains
     end select
 
     call time_add_alert(trim(dataset%name) // '.' // trim(dataset%mode), seconds=dataset%period)
+
+    ! Add alert for create new file.
+    if (present(frames_per_file) .and. frames_per_file /= 'N/A') then
+      dataset%new_file_alert = trim(dataset%name) // '.new_file'
+      time_value = string_split(frames_per_file, 1)
+      time_units = string_split(frames_per_file, 2)
+      read(time_value, *) value
+      select case (time_units)
+      case ('months')
+        call time_add_alert(dataset%new_file_alert, months=value)
+      case ('days')
+        call time_add_alert(dataset%new_file_alert, days=value)
+      case default
+        call log_error('Invalid IO period ' // trim(period_) // '!')
+      end select
+    end if
 
     call datasets%insert(trim(dataset%name) // '.' // trim(dataset%mode), dataset)
 
@@ -397,66 +419,76 @@ contains
       write(file_path, "(A, '.', A, '.nc')") trim(dataset%file_prefix_or_path), trim(curr_time_format)
     end if
 
-    ierr = NF90_CREATE(file_path, NF90_CLOBBER, dataset%id)
-    if (ierr /= NF90_NOERR) then
-      call log_error('Failed to create NetCDF file to output!')
-    end if
-    ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, 'dataset', dataset%name)
-    ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, 'desc', dataset%desc)
-    ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, 'author', dataset%author)
-
-    iter = hash_table_iterator(dataset%metas)
-    do while (.not. iter%ended())
-      select type (value => iter%value)
-      type is (integer)
-        ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, iter%key, value)
-      type is (real)
-        ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, iter%key, value)
-      type is (character(*))
-        ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, iter%key, value)
-      type is (logical)
-        ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, iter%key, to_string(value))
-      end select
-      call iter%next()
-    end do
-
-    iter = hash_table_iterator(dataset%dims)
-    do while (.not. iter%ended())
-      dim => dataset%get_dim(iter%key)
-      ierr = NF90_DEF_DIM(dataset%id, dim%name, dim%size, dim%id)
+    if (dataset%new_file_alert == 'N/A' .or. time_is_alerted(dataset%new_file_alert) .or. dataset%time_step == 0) then
+      ierr = NF90_CREATE(file_path, NF90_CLOBBER, dataset%id)
       if (ierr /= NF90_NOERR) then
-        call log_error('Failed to define dimension ' // trim(dim%name) // '!')
+        call log_error('Failed to create NetCDF file to output!')
       end if
-      call iter%next()
-    end do
+      ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, 'dataset', dataset%name)
+      ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, 'desc', dataset%desc)
+      ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, 'author', dataset%author)
 
-    iter = hash_table_iterator(dataset%vars)
-    do while (.not. iter%ended())
-      var => dataset%get_var(iter%key)
-      do i = 1, size(var%dims)
-        dimids(i) = var%dims(i)%ptr%id
+      iter = hash_table_iterator(dataset%metas)
+      do while (.not. iter%ended())
+        select type (value => iter%value)
+        type is (integer)
+          ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, iter%key, value)
+        type is (real)
+          ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, iter%key, value)
+        type is (character(*))
+          ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, iter%key, value)
+        type is (logical)
+          ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, iter%key, to_string(value))
+        end select
+        call iter%next()
       end do
-      ierr = NF90_DEF_VAR(dataset%id, var%name, var%data_type, dimids(1:size(var%dims)), var%id)
+
+      iter = hash_table_iterator(dataset%dims)
+      do while (.not. iter%ended())
+        dim => dataset%get_dim(iter%key)
+        ierr = NF90_DEF_DIM(dataset%id, dim%name, dim%size, dim%id)
+        if (ierr /= NF90_NOERR) then
+          call log_error('Failed to define dimension ' // trim(dim%name) // '!')
+        end if
+        call iter%next()
+      end do
+
+      iter = hash_table_iterator(dataset%vars)
+      do while (.not. iter%ended())
+        var => dataset%get_var(iter%key)
+        do i = 1, size(var%dims)
+          dimids(i) = var%dims(i)%ptr%id
+        end do
+        ierr = NF90_DEF_VAR(dataset%id, var%name, var%data_type, dimids(1:size(var%dims)), var%id)
+        if (ierr /= NF90_NOERR) then
+          call log_error('Failed to define variable ' // trim(var%name) // '!')
+        end if
+        ierr = NF90_PUT_ATT(dataset%id, var%id, 'long_name', trim(var%long_name))
+        ierr = NF90_PUT_ATT(dataset%id, var%id, 'units', trim(var%units))
+        call iter%next()
+      end do
+
+      ierr = NF90_ENDDEF(dataset%id)
+
+      dataset%time_step = 0 ! Reset to zero!
+      dataset%last_file_path = file_path
+    else
+      ierr = NF90_OPEN(dataset%last_file_path, NF90_WRITE, dataset%id)
       if (ierr /= NF90_NOERR) then
-        call log_error('Failed to define variable ' // trim(var%name) // '!')
+        call log_error('Failed to open NetCDF file to output! ' // trim(NF90_STRERROR(ierr)), __FILE__, __LINE__)
       end if
-      ierr = NF90_PUT_ATT(dataset%id, var%id, 'long_name', trim(var%long_name))
-      ierr = NF90_PUT_ATT(dataset%id, var%id, 'units', trim(var%units))
-      call iter%next()
-    end do
-
-    ierr = NF90_ENDDEF(dataset%id)
-
+    end if
+    
     ! Write time dimension variable.
     if (associated(dataset%time_var)) then
+      dataset%time_step = dataset%time_step + 1
       ! Update time units because restart may change it.
       write(dataset%time_var%units, '(A, " since ", A)') trim(time_units), start_time_format
       ierr = NF90_PUT_ATT(dataset%id, dataset%time_var%id, 'units', trim(dataset%time_var%units))
-      ierr = NF90_PUT_VAR(dataset%id, dataset%time_var%id, time_elapsed_seconds() / time_units_in_seconds)
+      ierr = NF90_PUT_VAR(dataset%id, dataset%time_var%id, [time_elapsed_seconds() / time_units_in_seconds], [dataset%time_step], [1])
       if (ierr /= NF90_NOERR) then
         call log_error('Failed to write variable time!')
       end if
-      dataset%time_step = dataset%time_step + 1
     end if
 
   end subroutine io_start_output
