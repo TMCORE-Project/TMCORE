@@ -282,11 +282,11 @@ contains
     if (.not. present(long_name)) then
       select case (name)
       case ('lon', 'ilon')
-        dim%long_name = 'longitude'
+        dim%long_name = 'Longitude'
       case ('lat', 'ilat')
-        dim%long_name = 'latitude'
-      case ('time')
-        dim%long_name = 'time'
+        dim%long_name = 'Latitude'
+      case ('time', 'Time')
+        dim%long_name = 'Time'
       case default
         dim%long_name = long_name
       end select
@@ -297,7 +297,7 @@ contains
         dim%units = 'degrees_east'
       case ('lat', 'ilat')
         dim%units = 'degrees_north'
-      case ('time')
+      case ('time', 'Time')
         write(dim%units, '(A, " since ", A)') trim(time_units), start_time_format
       case default
         dim%units = units
@@ -313,7 +313,7 @@ contains
 
     if (present(add_var) .and. add_var) then
       ! Add corresponding dimension variable.
-      call io_add_var(name, dataset_name, long_name=dim%long_name, units=dim%units, dim_names=[name])
+      call io_add_var(name, dataset_name, long_name=dim%long_name, units=dim%units, dim_names=[name], data_type='real(8)')
     end if
 
   end subroutine io_add_dim
@@ -358,11 +358,11 @@ contains
       end select
     else
       select case (data_type)
-      case ('real(4)')
+      case ('real', 'real(4)')
         var%data_type = NF90_FLOAT
       case ('real(8)')
         var%data_type = NF90_DOUBLE
-      case ('integer(4)')
+      case ('integer', 'integer(4)')
         var%data_type = NF90_INT
       case ('integer(8)')
         var%data_type = NF90_INT64
@@ -391,7 +391,7 @@ contains
 
     call dataset%vars%insert(name, var)
 
-    if (name == 'time') dataset%time_var => dataset%get_var(name)
+    if (name == 'Time') dataset%time_var => dataset%get_var(name)
 
   end subroutine io_add_var
 
@@ -433,7 +433,9 @@ contains
         select type (value => iter%value)
         type is (integer)
           ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, iter%key, value)
-        type is (real)
+        type is (real(4))
+          ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, iter%key, value)
+        type is (real(8))
           ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, iter%key, value)
         type is (character(*))
           ierr = NF90_PUT_ATT(dataset%id, NF90_GLOBAL, iter%key, value)
@@ -548,12 +550,13 @@ contains
       count(1) = var%dims(1)%ptr%size
     else
       do i = 1, 2
-        start(i) = 1
         if (var%dims(i)%ptr%size == NF90_UNLIMITED) then
+          start(i) = dataset%time_step
           count(i) = 1
         else
           lb = lbound(array, i)
           ub = ubound(array, i)
+          start(i) = 1
           count(i) = var%dims(i)%ptr%size
         end if
       end do
@@ -596,10 +599,11 @@ contains
     ub2 = ubound(array, 2)
 
     do i = 1, size(var%dims)
-      start(i) = 1
       if (var%dims(i)%ptr%size == NF90_UNLIMITED) then
+        start(i) = dataset%time_step
         count(i) = 1
       else
+        start(i) = 1
         count(i) = var%dims(i)%ptr%size
       end if
     end do

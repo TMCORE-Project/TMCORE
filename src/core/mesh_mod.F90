@@ -45,6 +45,9 @@ module mesh_mod
   integer, allocatable :: tSignEdge(:,:)
   real(real_kind) totalArea
   ! Indices
+  integer, allocatable :: indexToCellID(:)                ! Global cell ID for all cell centers
+  integer, allocatable :: indexToEdgeID(:)                ! Global edge ID for all edge locations
+  integer, allocatable :: indexToVertexID(:)              ! Global vertex ID for all cell vertices
   integer, allocatable :: cellsOnCell(:,:)                ! Cell indices that surround a given cell
   integer, allocatable :: cellsOnEdge(:,:)                ! Cell indices that saddle a given edge
   integer, allocatable :: cellsOnVertex(:,:)              ! Cell indices that radiate from a given vertex
@@ -55,6 +58,7 @@ module mesh_mod
   integer, allocatable :: verticesOnEdge(:,:)             ! Vertex indices that saddle a given edge
   ! Weights
   real(real_kind), allocatable :: weightsOnEdge(:,:)      ! Weights to reconstruct tangential velocities
+  real(real_kind), allocatable :: meshDensity(:)          ! The value of the generating density function at each cell center
 
   real(real_kind), allocatable :: fCell(:)                ! Coriolis coefficients on a given cell
   real(real_kind), allocatable :: fVertex(:)              ! Coriolis coefficients on a given vertex
@@ -121,6 +125,9 @@ contains
     allocate(areaTriangle(nVertices))
     allocate(kiteAreasOnVertex(vertexDegree,nVertices))
     allocate(angleEdge(nEdges))
+    allocate(indexToCellID(nCells))
+    allocate(indexToEdgeID(nEdges))
+    allocate(indexToVertexID(nVertices))
     allocate(cellsOnCell(maxEdges,nCells))
     allocate(cellsOnEdge(2,nEdges))
     allocate(cellsOnVertex(3,nVertices))
@@ -130,6 +137,7 @@ contains
     allocate(verticesOnCell(maxEdges,nCells))
     allocate(verticesOnEdge(2,nEdges))
     allocate(weightsOnEdge(maxEdges2,nEdges))
+    allocate(meshDensity(nCells))
 
     ierr = nf90_inq_varid(ncid, 'nEdgesOnCell', varid)
 
@@ -156,6 +164,8 @@ contains
     ierr = nf90_get_var(ncid, varid, yCell)
 
     ierr = nf90_inq_varid(ncid, 'zCell', varid)
+
+    ierr = nf90_get_var(ncid, varid, zCell)
 
     ierr = nf90_inq_varid(ncid, 'latEdge', varid)
 
@@ -229,6 +239,18 @@ contains
 
     ierr = nf90_get_var(ncid, varid, angleEdge)
 
+    ierr = nf90_inq_varid(ncid, 'indexToCellID', varid)
+
+    ierr = nf90_get_var(ncid, varid, indexToCellID)
+
+    ierr = nf90_inq_varid(ncid, 'indexToEdgeID', varid)
+
+    ierr = nf90_get_var(ncid, varid, indexToEdgeID)
+
+    ierr = nf90_inq_varid(ncid, 'indexToVertexID', varid)
+
+    ierr = nf90_get_var(ncid, varid, indexToVertexID)
+
     ierr = nf90_inq_varid(ncid, 'cellsOnCell', varid)
 
     ierr = nf90_get_var(ncid, varid, cellsOnCell)
@@ -265,6 +287,10 @@ contains
 
     ierr = nf90_get_var(ncid, varid, weightsOnEdge)
 
+    ierr = nf90_inq_varid(ncid, 'meshDensity', varid)
+
+    ierr = nf90_get_var(ncid, varid, meshDensity)
+
     ierr = nf90_close(ncid)
 
     ! Derived quantities
@@ -297,6 +323,15 @@ contains
     end do
 
     ! Scale mesh parameters.
+    xCell             = xCell             * radius
+    yCell             = yCell             * radius
+    zCell             = zCell             * radius
+    xEdge             = xEdge             * radius
+    yEdge             = yEdge             * radius
+    zEdge             = zEdge             * radius
+    xVertex           = xVertex           * radius
+    yVertex           = yVertex           * radius
+    zVertex           = zVertex           * radius
     dvEdge            = dvEdge            * radius
     dv1Edge           = dv1Edge           * radius
     dv2Edge           = dv2Edge           * radius
@@ -335,6 +370,9 @@ contains
     if (allocated(areaTriangle))      deallocate(areaTriangle)
     if (allocated(kiteAreasOnVertex)) deallocate(kiteAreasOnVertex)
     if (allocated(angleEdge))         deallocate(angleEdge)
+    if (allocated(indexToCellID))     deallocate(indexToCellID)
+    if (allocated(indexToEdgeID))     deallocate(indexToEdgeID)
+    if (allocated(indexToVertexID))   deallocate(indexToVertexID)
     if (allocated(cellsOnCell))       deallocate(cellsOnCell)
     if (allocated(cellsOnEdge))       deallocate(cellsOnEdge)
     if (allocated(cellsOnVertex))     deallocate(cellsOnVertex)
@@ -344,6 +382,13 @@ contains
     if (allocated(verticesOnCell))    deallocate(verticesOnCell)
     if (allocated(verticesOnEdge))    deallocate(verticesOnEdge)
     if (allocated(weightsOnEdge))     deallocate(weightsOnEdge)
+    if (allocated(meshDensity))       deallocate(meshDensity)
+    if (allocated(nCellsOnVertex))    deallocate(nCellsOnVertex)
+    if (allocated(areaEdge))          deallocate(areaEdge)
+    if (allocated(fCell))             deallocate(fCell)
+    if (allocated(fVertex))           deallocate(fVertex)
+    if (allocated(nSignEdge))         deallocate(nSignEdge)
+    if (allocated(tSignEdge))         deallocate(tSignEdge)
 
   end subroutine mesh_final
 
