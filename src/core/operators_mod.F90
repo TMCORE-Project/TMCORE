@@ -37,8 +37,7 @@ contains
     integer iCell
 
     do iCell = lbound(div, 1), ubound(div, 1)
-      div(iCell) = -sum(                                                     &
-                         nSignEdge            (1:nEdgesOnCell(iCell),iCell)  &
+      div(iCell) = -sum( nSignEdge            (1:nEdgesOnCell(iCell),iCell)  &
                        * f_edge   (edgesOnCell(1:nEdgesOnCell(iCell),iCell)) &
                        * dvEdge   (edgesOnCell(1:nEdgesOnCell(iCell),iCell)) &
                        )
@@ -91,8 +90,7 @@ contains
     integer iEdge
 
     do iEdge = lbound(f_edge, 1), ubound(f_edge, 1)
-      f_edge(iEdge) = 0.5d0 * (                              &
-                                f_cell(cellsOnEdge(1,iEdge)) &
+      f_edge(iEdge) = 0.5d0 * ( f_cell(cellsOnEdge(1,iEdge)) &
                               + f_cell(cellsOnEdge(2,iEdge)) &
                               )
     end do

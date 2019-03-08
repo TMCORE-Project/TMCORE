@@ -62,11 +62,11 @@ contains
 
   subroutine tmcore_sw_run()
 
-    call scalar_c2e_interp_operator(state(old)%cell%gd, state(old)%edge%gd)
-    call iap_sw_operator(state(old)%edge%gd, state(old)%edge%u, state(old)%edge%iap_u)
-    call scalar_c2v_interp_operator(state(old)%cell%gd, state(old)%vertex%gd)
-    call curl_operator(state(old)%edge%u, state(old)%vertex%vor)
-    call calc_pv_on_vertex(state(old)%vertex%vor, state(old)%vertex%gd, state(old)%vertex%pv)
+    call scalar_c2e_interp_operator(state(old)%cell%gd   , state(old)%edge%gd                           )
+    call iap_sw_operator           (state(old)%edge%gd   , state(old)%edge%u     , state(old)%edge%iap_u)
+    call scalar_c2v_interp_operator(state(old)%cell%gd   , state(old)%vertex%gd                         )
+    call curl_operator             (state(old)%edge%u    , state(old)%vertex%vor                        )
+    call calc_pv_on_vertex         (state(old)%vertex%vor, state(old)%vertex%gd  , state(old)%vertex%pv )
 
     call diag_run(state(old), static)
     call history_write(state(old), static)
@@ -94,22 +94,21 @@ contains
     type(state_type), intent(inout) :: state
     type(tend_type),  intent(inout) :: tend
 
-    call scalar_c2e_interp_operator(state%cell%gd, state%edge%gd)
-    call inverse_iap_sw_operator(state%edge%gd, state%edge%iap_u, state%edge%u)
-    call calc_gd_tend_on_cell(state%edge%u, state%edge%gd, tend%cell%gd)
-    call scalar_c2e_interp_operator(tend%cell%gd, tend%edge%gd)
-    call scalar_c2v_interp_operator(tend%cell%gd, tend%vertex%gd)
-    call scalar_c2v_interp_operator(state%cell%gd, state%vertex%gd)
-    call curl_operator(state%edge%u, state%vertex%vor)
-    call calc_tangent_wind(state%edge%u, state%edge%v)
-    call calc_kinetic_energy(state%edge%u, state%cell%ke)
-    call calc_pv_on_vertex(state%vertex%vor, state%vertex%gd, state%vertex%pv)
-    call scalar_v2c_interp_operator(state%vertex%pv, state%cell%pv)
-    call calc_pv_on_edge(state%edge%u, state%edge%v, state%edge%gd, tend%vertex%gd, state%vertex%pv, state%cell%pv, state%edge%pv)
-    call calc_tangent_vor_flux(state%edge%u, state%edge%gd, state%edge%pv, state%edge%pv_flx)
-    call calc_u_tend_on_edge(state%edge%u, state%cell%ke, state%cell%gd, state%edge%gd, static%cell%ghs, &
-                             state%edge%pv_flx, state%vertex%pv, tend%cell%gd, tend%edge%gd, &
-                             tend%edge%u, tend%edge%iap_u)
+    call scalar_c2e_interp_operator(state%cell  %gd     , state%edge  %gd                    )
+    call inverse_iap_sw_operator   (state%edge  %gd     , state%edge  %iap_u, state%edge%u   )
+    call calc_gd_tend_on_cell      (state%edge  %u      , state%edge  %gd   , tend %cell%gd  )
+    call scalar_c2e_interp_operator(tend %cell  %gd     , tend %edge  %gd                    )
+    call scalar_c2v_interp_operator(tend %cell  %gd     , tend %vertex%gd                    )
+    call scalar_c2v_interp_operator(state%cell  %gd     , state%vertex%gd                    )
+    call curl_operator             (state%edge  %u      , state%vertex%vor                   )
+    call calc_tangent_wind         (state%edge  %u      , state%edge  %v                     )
+    call calc_kinetic_energy       (state%edge  %u      , state%cell  %ke                    )
+    call calc_pv_on_vertex         (state%vertex%vor    , state%vertex%gd   , state%vertex%pv)
+    call scalar_v2c_interp_operator(state%vertex%pv     , state%cell  %pv                    )
+    call calc_pv_on_edge           (state%edge  %u      , state%edge  %v    , state%edge  %gd  , tend %vertex%gd     , state %vertex%pv  , state%cell%pv   , state%edge%pv)
+    call calc_tangent_vor_flux     (state%edge  %u      , state%edge  %gd   , state%edge  %pv  , state%edge  %pv_flx                                                      )
+    call calc_u_tend_on_edge       (state%edge  %u      , state%cell  %ke   , state%cell  %gd  , state%edge  %gd     , static%cell  %ghs ,                                &
+                                    state%edge  %pv_flx , state%vertex%pv   , tend %cell  %gd  , tend %edge  %gd     , tend  %edge  %u   , tend%edge%iap_u                )
 
   end subroutine spatial_operators
 
@@ -122,13 +121,9 @@ contains
     real(real_kind) flux(lbound(u_edge, 1):ubound(u_edge, 1))
     integer iCell
 
-    flux = u_edge * gd_edge * dvEdge
-    do iCell = lbound(gd_tend_cell, 1), ubound(gd_tend_cell, 1)
-      gd_tend_cell(iCell) = -sum( nSignEdge(1:nEdgesOnCell(iCell),iCell)         &
-                                * flux(edgesOnCell(1:nEdgesOnCell(iCell),iCell)) &
-                                )
-    end do
-    gd_tend_cell = gd_tend_cell / areaCell
+    flux = u_edge * gd_edge
+    
+    call div_operator(flux, gd_tend_cell)
 
   end subroutine calc_gd_tend_on_cell
 

@@ -190,9 +190,10 @@ contains
       ke_cell(iCell) = sum(                                                       &
                             u_edge  (edgesOnCell(1:nEdgesOnCell(iCell),iCell))**2 &
                           * areaEdge(edgesOnCell(1:nEdgesOnCell(iCell),iCell))    &
-                          ) * 0.25d0 / areaCell(iCell)
+                          ) * 0.25d0
     end do
 
+    ke_cell = ke_cell / areaCell
   end subroutine calc_kinetic_energy
 
   subroutine calc_tangent_wind(u_edge, v_edge)
@@ -368,12 +369,7 @@ contains
 
     integer iVertex
 
-    do iVertex = lbound(vor_tend_vertex, 1), ubound(vor_tend_vertex, 1)
-      vor_tend_vertex(iVertex) = -sum( tSignEdge                (:,iVertex)  &
-                                     * u_tend_edge(edgesOnVertex(:,iVertex)) &
-                                     * dcEdge     (edgesOnVertex(:,iVertex)) &
-                                     ) / areaTriangle(iVertex)
-    end do
+    call curl_operator(u_tend_edge, vor_tend_vertex)
 
   end subroutine calc_vor_tend_on_vertex
 
