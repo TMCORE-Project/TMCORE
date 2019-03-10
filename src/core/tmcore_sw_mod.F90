@@ -11,7 +11,7 @@ module tmcore_sw_mod
   use operators_mod
   use diag_mod
   use history_mod
-  use tmcore_common_mod
+  use time_scheme_mod
 
   implicit none
 
