@@ -133,7 +133,7 @@ module advection_mod
 
         length_scale = 1.0_real_kind
         do i = 1, nReconstructCells-1
-          l_sphere(i) = dl_sphere(i) / length_scale
+          dl_sphere(i) = dl_sphere(i) / length_scale
         end do
 
 !        thetat(1) = 0.  !  this defines the x direction, cell center 1 -> 
