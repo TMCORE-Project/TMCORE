@@ -11,7 +11,7 @@ program test_tmcore_swm
 
   call system_clock(start_clock)
 
-  call tmcore_swm_init('./namelist.tmcore_sw')
+  call tmcore_swm_init('./namelist.tmcore_swm')
 
   call test_cases_set_initial_condition()
 
