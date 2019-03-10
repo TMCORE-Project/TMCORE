@@ -1,6 +1,7 @@
 module operators_mod
 
   use params_mod
+  use log_mod
   use mesh_mod
   use static_mod
   use state_mod
@@ -20,6 +21,11 @@ module operators_mod
   public iap_sw_operator
   public inverse_iap_sw_operator
   public inner_product
+  public calc_kinetic_energy
+  public calc_tangent_wind
+  public calc_tangent_vor_flux
+  public calc_pv_on_vertex
+  public calc_pv_on_edge
 
   interface inner_product
     module procedure inner_product_state
@@ -254,5 +260,198 @@ contains
     res = (sum(state%edge%iap_u * tend%edge%iap_u * areaEdge)  + sum((state%cell%gd + static%cell%ghs) * tend%cell%gd * areaCell)) /totalArea
 
   end function inner_product_state_tend
+
+  ! Degree of freedom to keep energy conservation
+  subroutine calc_kinetic_energy(u_edge, ke_cell)
+
+    real(real_kind), intent(in)  :: u_edge (:)
+    real(real_kind), intent(out) :: ke_cell(:)
+
+    integer iCell
+
+    do iCell = lbound(ke_cell, 1), ubound(ke_cell, 1)
+      ke_cell(iCell) = sum(                                                       &
+                            u_edge  (edgesOnCell(1:nEdgesOnCell(iCell),iCell))**2 &
+                          * areaEdge(edgesOnCell(1:nEdgesOnCell(iCell),iCell))    &
+                          ) * 0.25d0
+    end do
+    ke_cell = ke_cell / areaCell
+
+  end subroutine calc_kinetic_energy
+
+  subroutine calc_tangent_wind(u_edge, v_edge)
+
+    real(real_kind), intent(in)  :: u_edge(:)
+    real(real_kind), intent(out) :: v_edge(:)
+
+    integer iEdge
+
+    do iEdge = lbound(v_edge, 1), ubound(v_edge, 1)
+      v_edge(iEdge) = sum(                                                         &
+                           u_edge       (edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)) &
+                         * weightsOnEdge            (1:nEdgesOnEdge(iEdge),iEdge)  &
+                         )
+    end do
+
+  end subroutine calc_tangent_wind
+
+  subroutine calc_tangent_vor_flux(u_edge, gd_edge, pv_edge, tangent_vor_flux)
+
+    real(real_kind), intent(in)  :: u_edge          (:)
+    real(real_kind), intent(in)  :: gd_edge         (:)
+    real(real_kind), intent(in)  :: pv_edge         (:)
+    real(real_kind), intent(out) :: tangent_vor_flux(:)
+
+    integer iEdge, iEdgePrime, i
+
+    tangent_vor_flux = 0.0d0
+    do iEdge = lbound(u_edge, 1), ubound(u_edge, 1)
+      do i = 1, nEdgesOnEdge(iEdge)
+        iEdgePrime = edgesOnEdge(i,iEdge)
+
+        tangent_vor_flux(iEdge) = tangent_vor_flux(iEdge) + weightsOnEdge(i,iEdge)                         &
+                                                          * u_edge (iEdgePrime)                            &
+                                                          * gd_edge(iEdgePrime)                            &
+                                                          * 0.5d0 * (pv_edge(iEdge) + pv_edge(iEdgePrime))
+      end do
+    end do
+
+  end subroutine calc_tangent_vor_flux
+
+  subroutine calc_pv_on_vertex(vor_vertex, gd_vertex, pv_vertex)
+
+    real(real_kind), intent(in)  :: vor_vertex(:)
+    real(real_kind), intent(in)  :: gd_vertex (:)
+    real(real_kind), intent(out) :: pv_vertex (:)
+
+    pv_vertex = (fVertex + vor_vertex) / gd_vertex
+
+  end subroutine calc_pv_on_vertex
+
+  ! Degree of freedom to keep energy conservation
+  subroutine calc_pv_on_edge(u_edge, v_edge, gd_edge, gd_tend_vertex, pv_vertex, pv_cell, pv_edge)
+
+    real(real_kind), intent(in)  :: u_edge        (:)
+    real(real_kind), intent(in)  :: v_edge        (:)
+    real(real_kind), intent(in)  :: gd_edge       (:)
+    real(real_kind), intent(in)  :: gd_tend_vertex(:)
+    real(real_kind), intent(in)  :: pv_vertex     (:)
+    real(real_kind), intent(in)  :: pv_cell       (:)
+    real(real_kind), intent(out) :: pv_edge       (:)
+
+    select case (pv_scheme)
+    case (1)
+      call calc_pv_on_edge_APVM(u_edge, v_edge, pv_vertex, pv_cell, pv_edge)
+    case (2)
+      call calc_pv_on_edge_CLUST()
+    case (3)
+      call calc_pv_on_edge_LUST()
+    case (4)
+      call calc_pv_on_edge_conservative_APVM(u_edge, v_edge, gd_edge, gd_tend_vertex, pv_vertex, pv_cell, pv_edge)
+    case (5)
+      call calc_pv_on_edge_order2()
+    case (6)
+      call calc_pv_on_edge_smoothed_order2()
+    case default
+      call log_error('Unknow PV scheme, please choose from 1 (APVM), 2 (CLUST), 3 (LUST), 4 (conservative APVM), 5 (order2), 6 (smoothed order2)!')
+    end select
+
+  end subroutine calc_pv_on_edge
+
+  subroutine calc_pv_on_edge_APVM(u_edge, v_edge, pv_vertex, pv_cell, pv_edge)
+
+    real(real_kind), intent(in)  :: u_edge   (:)
+    real(real_kind), intent(in)  :: v_edge   (:)
+    real(real_kind), intent(in)  :: pv_vertex(:)
+    real(real_kind), intent(in)  :: pv_cell  (:)
+    real(real_kind), intent(out) :: pv_edge  (:)
+
+    integer iEdge
+
+    call scalar_v2e_interp_operator(pv_vertex, pv_edge)
+
+    if (apvm_weight /= 0.0d0) then
+      do iEdge = lbound(pv_edge, 1), ubound(pv_edge, 1)
+        pv_edge(iEdge) = pv_edge(iEdge) - apvm_weight * dt * ( v_edge(iEdge) * (pv_vertex(verticesOnEdge(2,iEdge)) - pv_vertex(verticesOnEdge(1,iEdge))) / dvEdge(iEdge) &
+                                                             + u_edge(iEdge) * (pv_cell  (cellsOnEdge   (2,iEdge)) - pv_cell  (cellsOnEdge   (1,iEdge))) / dcEdge(iEdge) &
+                                                             )
+      end do
+    end if
+
+  end subroutine calc_pv_on_edge_APVM
+
+  subroutine calc_pv_on_edge_conservative_APVM(u_edge, v_edge, gd_edge, gd_tend_vertex, pv_vertex, pv_cell, pv_edge)
+
+    real(real_kind), intent(in)  :: u_edge        (:)
+    real(real_kind), intent(in)  :: v_edge        (:)
+    real(real_kind), intent(in)  :: gd_edge       (:)
+    real(real_kind), intent(in)  :: gd_tend_vertex(:)
+    real(real_kind), intent(in)  :: pv_vertex     (:)
+    real(real_kind), intent(in)  :: pv_cell       (:)
+    real(real_kind), intent(out) :: pv_edge       (:)
+
+    real(real_kind) dpv_edge     (lbound(pv_edge, 1):ubound(pv_edge, 1))
+    real(real_kind)  pv_flux_edge(lbound(pv_edge, 1):ubound(pv_edge, 1))
+    real(real_kind) dpv_flux_edge(lbound(pv_edge, 1):ubound(pv_edge, 1))
+    real(real_kind)  vor_tend_vertex(lbound(pv_vertex, 1):ubound(pv_vertex, 1))
+    real(real_kind) dvor_tend_vertex(lbound(pv_vertex, 1):ubound(pv_vertex, 1))
+
+    integer iEdge
+    real(real_kind) eps
+
+    call scalar_v2e_interp_operator(pv_vertex, pv_edge)
+
+    do iEdge = lbound(pv_edge, 1), ubound(pv_edge, 1)
+      dpv_edge(iEdge) = ( v_edge(iEdge) * (pv_vertex(verticesOnEdge(2,iEdge)) - pv_vertex(verticesOnEdge(1,iEdge))) / dvEdge(iEdge) &
+                        + u_edge(iEdge) * (pv_cell  (cellsOnEdge   (2,iEdge)) - pv_cell  (cellsOnEdge   (1,iEdge))) / dcEdge(iEdge) &
+                        )
+    end do
+
+    call calc_tangent_vor_flux(u_edge, gd_edge,  pv_edge,  pv_flux_edge)
+    call calc_tangent_vor_flux(u_edge, gd_edge, dpv_edge, dpv_flux_edge)
+
+    call calc_vor_tend_on_vertex( pv_flux_edge,  vor_tend_vertex)
+    call calc_vor_tend_on_vertex(dpv_flux_edge, dvor_tend_vertex)
+
+    eps = -( sum(pv_vertex**2 * gd_tend_vertex  * areaTriangle)         &
+           - sum(pv_vertex    * vor_tend_vertex * areaTriangle) * 2.0d0 &
+           ) / (2.0d0 * dt * sum(pv_vertex * dvor_tend_vertex * areaTriangle))
+
+    pv_edge = pv_edge - eps * dt * dpv_edge
+
+  end subroutine calc_pv_on_edge_conservative_APVM
+
+  subroutine calc_pv_on_edge_CLUST()
+
+    ! Under construction
+
+  end subroutine calc_pv_on_edge_CLUST
+
+  subroutine calc_pv_on_edge_LUST()
+
+    ! Under construction
+
+  end subroutine calc_pv_on_edge_LUST
+
+  subroutine calc_pv_on_edge_order2()
+
+    ! Under construction
+
+  end subroutine calc_pv_on_edge_order2
+
+  subroutine calc_pv_on_edge_smoothed_order2()
+
+    ! Under construction
+
+  end subroutine calc_pv_on_edge_smoothed_order2
+
+  subroutine calc_vor_tend_on_vertex(u_tend_edge, vor_tend_vertex)
+
+    real(real_kind), intent(in)  :: u_tend_edge    (:)
+    real(real_kind), intent(out) :: vor_tend_vertex(:)
+
+    call curl_operator(u_tend_edge, vor_tend_vertex)
+
+  end subroutine calc_vor_tend_on_vertex
 
 end module operators_mod

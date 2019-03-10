@@ -23,7 +23,7 @@ contains
 
   subroutine mountain_zonal_flow_test_set_initial_condition()
 
-    real(real_kind) cos_lat, sin_lat, cos_lon, sin_lon, cos_alpha, sin_alpha, dlon, d
+    real(real_kind) cos_lat, sin_lat, cos_lon, cos_alpha, sin_alpha, dlon, d
     real(real_kind) psi_vertex(nVertices)
     integer iCell, iEdge, iVertex
 
@@ -43,7 +43,6 @@ contains
       cos_lat = cos(latVertex(iVertex))
       sin_lat = sin(latVertex(iVertex))
       cos_lon = cos(lonVertex(iVertex))
-      sin_lon = sin(lonVertex(iVertex))
       psi_vertex(iVertex) = - radius * u0 * (sin_lat * cos_alpha - cos_lon * cos_lat * sin_alpha)
     end do
 
