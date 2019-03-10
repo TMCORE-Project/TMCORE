@@ -41,6 +41,7 @@ set(source_files
   src/utils/log_mod.F90
   src/utils/io_mod.F90
   src/utils/history_mod.F90
+  src/utils/sort_mod.F90
   src/core/params_mod.F90
   src/core/mesh_mod.F90
   src/core/static_mod.F90
