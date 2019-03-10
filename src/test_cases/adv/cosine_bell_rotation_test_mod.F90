@@ -17,7 +17,7 @@ module cosine_bell_rotation_test_mod
   real(real_kind), parameter :: lon0 = 1.5d0 * pi
   real(real_kind), parameter :: lat0 = 0.0d0
   real(real_kind), parameter :: R0 = radius / 3.0d0
-  real(real_kind), parameter :: alpha = 0.0d0
+  real(real_kind), parameter :: alpha = 0.5d0 * pi
 
 contains
 

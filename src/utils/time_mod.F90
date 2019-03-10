@@ -85,8 +85,8 @@ contains
     start_time = time
     curr_time = start_time
 
-    start_time_format = start_time%isoformat()
-    curr_time_format = curr_time%isoformat()
+    start_time_format = start_time%format('%Y-%m-%dT%H_%M_%S')
+    curr_time_format  = curr_time %format('%Y-%m-%dT%H_%M_%S')
 
   end subroutine time_reset_start_time
 

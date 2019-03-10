@@ -42,6 +42,7 @@ set(source_files
   src/utils/io_mod.F90
   src/utils/history_mod.F90
   src/utils/sort_mod.F90
+  src/utils/sphere_geometry_mod.F90
   src/core/params_mod.F90
   src/core/mesh_mod.F90
   src/core/static_mod.F90
@@ -59,6 +60,7 @@ set(source_files
   src/test_cases/swm/rossby_haurwitz_wave_test_mod.F90
   src/test_cases/swm/linearized_rossby_wave_test_mod.F90
   src/test_cases/adv/cosine_bell_rotation_test_mod.F90
+  src/test_cases/adv/deformation_flow_test_mod.F90
 )
 
 set(CMAKE_Fortran_MODULE_DIRECTORY "${CMAKE_BINARY_DIR}/.mods")

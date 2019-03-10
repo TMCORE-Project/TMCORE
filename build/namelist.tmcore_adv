@@ -5,7 +5,7 @@ dt        = 360
 
 &io_control
 history_periods    = '6 hours'
-output_file_prefix = 'cb.40962'
+output_file_prefix = 'case4.sc.40962'
 frames_per_file    = '2 months'
 /
 
@@ -18,6 +18,8 @@ mesh_file_path  = './x1.40962.grid.nc'
 /
 
 &test_case
-! Choose from 'cosine_bell_rotation'
-case_name = 'cosine_bell_rotation'
+! Choose from 'cosine_bell_rotation', 'deformation_flow'
+case_name = 'deformation_flow'
+! Choose from 'case4:slotted_cylinders'
+subcase_name = 'case4:slotted_cylinders'
 /

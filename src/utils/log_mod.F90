@@ -82,7 +82,7 @@ contains
 
     type(hash_table_iterator_type) iter
 
-    write(6, '(" => ", A)', advance='no') trim(curr_time_format)
+    write(6, '(" => ", A)', advance='no') trim(curr_time%isoformat())
 
     iter = hash_table_iterator(diags)
     do while (.not. iter%ended())

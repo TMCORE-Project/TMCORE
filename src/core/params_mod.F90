@@ -27,9 +27,9 @@ module params_mod
   character(max_name_len) :: frames_per_file = 'N/A'
 
   namelist /io_control/   &
-    history_periods,      &
-    time_units,           &
-    output_file_prefix,   &
+    history_periods     , &
+    time_units          , &
+    output_file_prefix  , &
     frames_per_file
 
   integer time_scheme                 ! Time integration scheme
@@ -44,20 +44,22 @@ module params_mod
   character(max_file_path_len) mesh_file_path
 
   namelist /tmcore/       &
-    time_scheme          ,&
-    energy_scheme        ,&
-    pv_scheme            ,&
-    conserve_energy      ,&
-    apvm_weight          ,&
-    clust_weight         ,&
-    adv_order            ,&
-    adv_monotonic        ,&
+    time_scheme         , &
+    energy_scheme       , &
+    pv_scheme           , &
+    conserve_energy     , &
+    apvm_weight         , &
+    clust_weight        , &
+    adv_order           , &
+    adv_monotonic       , &
     mesh_file_path
 
   character(max_name_len) case_name
+  character(max_name_len) subcase_name
 
-  namelist /test_case/     &
-    case_name
+  namelist /test_case/    &
+    case_name           , &
+    subcase_name
 
 contains
 
