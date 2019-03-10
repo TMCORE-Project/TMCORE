@@ -231,7 +231,7 @@ module advection_mod
  
          end if
  
-         call sw_poly_fit_2( amatrix, bmatrix, wmatrix, ma, na, 25 )
+         call swm_poly_fit_2( amatrix, bmatrix, wmatrix, ma, na, 25 )
 
          do i = 1, nEdgesOnCell(iCell)
             ip1 = i+1
@@ -245,7 +245,7 @@ module advection_mod
             yv2 = yVertex(verticesOnEdge(2, iEdge)) / sphere_radius
             zv2 = zVertex(verticesOnEdge(2, iEdge)) / sphere_radius
   
-            call sw_arc_bisect( xv1, yv1, zv1,  &
+            call swm_arc_bisect( xv1, yv1, zv1,  &
                                 xv2, yv2, zv2,  &
                                 xec, yec, zec   )
   
@@ -435,13 +435,13 @@ module advection_mod
    
    
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   ! subroutine sw_arc_bisect
+   ! subroutine swm_arc_bisect
    !
    ! Returns the point C=(cx, cy, cz) that bisects the great circle arc from
    !   A=(ax, ay, az) to B=(bx, by, bz). It is assumed that A and B lie on the
    !   surface of a sphere centered at the origin.
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   subroutine sw_arc_bisect(ax, ay, az, bx, by, bz, cx, cy, cz)
+   subroutine swm_arc_bisect(ax, ay, az, bx, by, bz, cx, cy, cz)
    
       implicit none
    
@@ -466,10 +466,10 @@ module advection_mod
          cz = r * cz / d
       end if
    
-   end subroutine sw_arc_bisect
+   end subroutine swm_arc_bisect
 
 
-   subroutine sw_poly_fit_2(a_in,b_out,weights_in,m,n,ne)
+   subroutine swm_poly_fit_2(a_in,b_out,weights_in,m,n,ne)
 
       implicit none
 
@@ -505,14 +505,14 @@ module advection_mod
       ata = matmul(at,a)
 
 !      if (m == n) then
-!         call sw_migs(a,n,b,indx)
+!         call swm_migs(a,n,b,indx)
 !      else
 
-         call sw_migs(atha,n,atha_inv,indx)
+         call swm_migs(atha,n,atha_inv,indx)
 
          b = matmul(atha_inv,ath)
 
-!         call sw_migs(ata,n,ata_inv,indx)
+!         call swm_migs(ata,n,ata_inv,indx)
 !         b = matmul(ata_inv,at)
 !      end if
       b_out(1:n,1:m) = b(1:n,1:m)
@@ -523,7 +523,7 @@ module advection_mod
 !
 !     write(6,*) ' '
 
-   end subroutine sw_poly_fit_2
+   end subroutine swm_poly_fit_2
 
 
 ! Updated 10/24/2001.
@@ -542,7 +542,7 @@ module advection_mod
 !                                                                       !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
-subroutine sw_migs (A,N,X,INDX)
+subroutine swm_migs (A,N,X,INDX)
 !
 ! subroutine to invert matrix A(N,N) with the inverse stored
 ! in X(N,N) in the output.  Copyright (c) Tao Pang 2001.
@@ -564,7 +564,7 @@ subroutine sw_migs (A,N,X,INDX)
     B(I,I) = 1.0
   END DO
 !
-  call sw_elgs (A,N,INDX)
+  call swm_elgs (A,N,INDX)
 !
   DO I = 1, N-1
     DO J = I+1, N
@@ -584,10 +584,10 @@ subroutine sw_migs (A,N,X,INDX)
       X(J,I) =  X(J,I)/A(INDX(J),J)
     END DO
   END DO
-end subroutine sw_migs
+end subroutine swm_migs
 
 
-subroutine sw_elgs (A,N,INDX)
+subroutine swm_elgs (A,N,INDX)
 !
 ! subroutine to perform the partial-pivoting Gaussian elimination.
 ! A(N,N) is the original matrix in the input and transformed matrix
@@ -650,6 +650,6 @@ subroutine sw_elgs (A,N,INDX)
     END DO
   END DO
 !
-end subroutine sw_elgs
+end subroutine swm_elgs
 
 end module advection_mod

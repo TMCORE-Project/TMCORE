@@ -18,8 +18,8 @@ module operators_mod
   public scalar_c2v_interp_operator
   public scalar_v2c_interp_operator
   public scalar_v2e_interp_operator
-  public iap_sw_operator
-  public inverse_iap_sw_operator
+  public iap_swm_operator
+  public inverse_iap_swm_operator
   public inner_product
   public calc_kinetic_energy
   public calc_tangent_wind
@@ -214,7 +214,7 @@ contains
 
   end subroutine scalar_v2e_interp_operator
 
-  subroutine iap_sw_operator(gd_edge, u_edge, iap_u_edge)
+  subroutine iap_swm_operator(gd_edge, u_edge, iap_u_edge)
 
     real(real_kind), intent(in)  :: gd_edge   (:)
     real(real_kind), intent(in)  :: u_edge    (:)
@@ -222,9 +222,9 @@ contains
 
     iap_u_edge = sqrt(gd_edge) * u_edge
 
-  end subroutine iap_sw_operator
+  end subroutine iap_swm_operator
 
-  subroutine inverse_iap_sw_operator(gd_edge, iap_u_edge, u_edge)
+  subroutine inverse_iap_swm_operator(gd_edge, iap_u_edge, u_edge)
 
     real(real_kind), intent(in)  :: gd_edge   (:)
     real(real_kind), intent(in)  :: iap_u_edge(:)
@@ -232,7 +232,7 @@ contains
 
     u_edge = iap_u_edge / sqrt(gd_edge)
 
-  end subroutine inverse_iap_sw_operator
+  end subroutine inverse_iap_swm_operator
 
   real(real_kind) function inner_product_state(state1, state2) result(res)
 

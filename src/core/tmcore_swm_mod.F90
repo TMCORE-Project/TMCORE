@@ -1,4 +1,4 @@
-module tmcore_sw_mod
+module tmcore_swm_mod
 
   use params_mod
   use log_mod
@@ -17,13 +17,13 @@ module tmcore_sw_mod
 
   private
 
-  public tmcore_sw_init
-  public tmcore_sw_final
-  public tmcore_sw_run
+  public tmcore_swm_init
+  public tmcore_swm_final
+  public tmcore_swm_run
 
 contains
 
-  subroutine tmcore_sw_init(namelist_file_path)
+  subroutine tmcore_swm_init(namelist_file_path)
 
     character(*), intent(in) :: namelist_file_path
 
@@ -38,9 +38,9 @@ contains
     call diag_init(calc_total_mass, calc_total_energy, calc_total_potential_enstropy, calc_total_absolute_vorticity)
     call history_init()
 
-  end subroutine tmcore_sw_init
+  end subroutine tmcore_swm_init
 
-  subroutine tmcore_sw_final()
+  subroutine tmcore_swm_final()
 
     call mesh_final()
     call static_final()
@@ -48,12 +48,12 @@ contains
     call tend_final()
     call history_final()
 
-  end subroutine tmcore_sw_final
+  end subroutine tmcore_swm_final
 
-  subroutine tmcore_sw_run()
+  subroutine tmcore_swm_run()
   
     call scalar_c2e_interp_operator(state(old)%cell  %gd   , state(old)%edge  %gd    , adv_order            , state(old)%edge%u, adv_monotonic)
-    call iap_sw_operator           (state(old)%edge  %gd   , state(old)%edge  %u     , state(old)%edge%iap_u                                  )
+    call iap_swm_operator           (state(old)%edge  %gd   , state(old)%edge  %u     , state(old)%edge%iap_u                                  )
     call scalar_c2v_interp_operator(state(old)%cell  %gd   , state(old)%vertex%gd                                                             )
     call curl_operator             (state(old)%edge  %u    , state(old)%vertex%vor                                                            )
     call calc_pv_on_vertex         (state(old)%vertex%vor  , state(old)%vertex%gd    , state(old)%vertex%pv                                   )
@@ -66,7 +66,7 @@ contains
       call time_integrate(spatial_operators, update_state)
       call time_advance()
       call scalar_c2e_interp_operator(state(old)%cell  %gd , state(old)%edge  %gd   , adv_order            , state(old)%edge%u, adv_monotonic)
-      call inverse_iap_sw_operator   (state(old)%edge  %gd , state(old)%edge  %iap_u, state(old)%edge  %u                                    )
+      call inverse_iap_swm_operator   (state(old)%edge  %gd , state(old)%edge  %iap_u, state(old)%edge  %u                                    )
       call scalar_c2v_interp_operator(state(old)%cell  %gd , state(old)%vertex%gd                                                            )
       call curl_operator             (state(old)%edge  %u  , state(old)%vertex%vor                                                           )
       call calc_pv_on_vertex         (state(old)%vertex%vor, state(old)%vertex%gd   , state(old)%vertex%pv                                   )
@@ -75,7 +75,7 @@ contains
       call log_step()
     end do
 
-  end subroutine tmcore_sw_run
+  end subroutine tmcore_swm_run
 
   subroutine spatial_operators(state, tend)
 
@@ -83,7 +83,7 @@ contains
     type(tend_type),  intent(inout) :: tend
 
     call scalar_c2e_interp_operator(state%cell  %gd     , state%edge  %gd   , adv_order        , state%edge%u, adv_monotonic)
-    call inverse_iap_sw_operator   (state%edge  %gd     , state%edge  %iap_u, state%edge%u   )
+    call inverse_iap_swm_operator   (state%edge  %gd     , state%edge  %iap_u, state%edge%u   )
     call calc_gd_tend_on_cell      (state%edge  %u      , state%edge  %gd   , tend %cell%gd  )
     call scalar_c2e_interp_operator(tend %cell  %gd     , tend %edge  %gd   , adv_order        , state%edge%u, adv_monotonic)
     call scalar_c2v_interp_operator(tend %cell  %gd     , tend %vertex%gd                    )
@@ -197,4 +197,4 @@ contains
 
   end subroutine calc_total_absolute_vorticity
 
-end module tmcore_sw_mod
+end module tmcore_swm_mod
