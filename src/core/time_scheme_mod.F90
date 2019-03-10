@@ -14,6 +14,7 @@ module time_scheme_mod
   public time_integrate
   public spatial_operators_interface
   public update_state_interface
+  public update_wind_interface
 
   interface
     subroutine spatial_operators_interface(state, tend)
@@ -32,14 +33,18 @@ module time_scheme_mod
       type(state_type), intent(in)    :: old_state
       type(state_type), intent(inout) :: new_state
     end subroutine update_state_interface
+
+    subroutine update_wind_interface(time_idx)
+      integer, intent(in) :: time_idx
+    end subroutine update_wind_interface
   end interface
 
 contains
 
   subroutine time_integrate(spatial_operators, update_state)
 
-    procedure(spatial_operators_interface), pointer :: spatial_operators
-    procedure(update_state_interface), pointer :: update_state
+    procedure(spatial_operators_interface) spatial_operators
+    procedure(update_state_interface)      update_state
 
     select case (time_scheme)
     case (1)
@@ -58,8 +63,8 @@ contains
 
     integer, intent(in) :: old
     integer, intent(in) :: new
-    procedure(spatial_operators_interface), pointer :: spatial_operators
-    procedure(update_state_interface), pointer :: update_state
+    procedure(spatial_operators_interface) spatial_operators
+    procedure(update_state_interface)      update_state
     
     integer             :: one   = -1, &
                            two   = -2, &
@@ -102,8 +107,8 @@ contains
 
     integer, intent(in) :: old
     integer, intent(in) :: new
-    procedure(spatial_operators_interface), pointer :: spatial_operators
-    procedure(update_state_interface), pointer :: update_state
+    procedure(spatial_operators_interface) spatial_operators
+    procedure(update_state_interface)      update_state
 
     integer             :: one   = -1,&
                            two   = -2,&
@@ -148,8 +153,8 @@ contains
 
     integer, intent(in) :: old
     integer, intent(in) :: new
-    procedure(spatial_operators_interface), pointer :: spatial_operators
-    procedure(update_state_interface), pointer :: update_state
+    procedure(spatial_operators_interface) spatial_operators
+    procedure(update_state_interface)      update_state
 
     real(real_kind) ip1, ip2, beta
 

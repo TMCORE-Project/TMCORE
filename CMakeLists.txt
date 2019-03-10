@@ -50,15 +50,23 @@ set(source_files
   src/core/advection_mod.F90
   src/core/diag_mod.F90
   src/core/time_scheme_mod.F90
+  src/core/tmcore_adv_mod.F90
   src/core/tmcore_sw_mod.F90
   src/test_cases/test_cases_mod.F90
   src/test_cases/sw_model/mountain_zonal_flow_test_mod.F90
   src/test_cases/sw_model/steady_geostrophic_flow_test_mod.F90
   src/test_cases/sw_model/rossby_haurwitz_wave_test_mod.F90
   src/test_cases/sw_model/linearized_rossby_wave_test_mod.F90
+  src/test_cases/linear_advection/cosine_bell_rotation_test_mod.F90
 )
 
 set(CMAKE_Fortran_MODULE_DIRECTORY "${CMAKE_BINARY_DIR}/.mods")
 
-add_executable(test_tmcore_sw.exe src/core/test_tmcore_sw.F90 ${source_files})
-target_link_libraries(test_tmcore_sw.exe fortran_datetime fortran_container netcdf netcdff)
+add_library(tmcore ${source_files})
+target_link_libraries(tmcore fortran_datetime fortran_container netcdf netcdff)
+
+add_executable(test_tmcore_sw.exe src/core/test_tmcore_sw.F90)
+target_link_libraries(test_tmcore_sw.exe tmcore)
+
+add_executable(test_tmcore_adv.exe src/core/test_tmcore_adv.F90)
+target_link_libraries(test_tmcore_adv.exe tmcore)

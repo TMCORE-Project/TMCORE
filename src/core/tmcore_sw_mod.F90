@@ -21,25 +21,11 @@ module tmcore_sw_mod
   public tmcore_sw_final
   public tmcore_sw_run
 
-  procedure(spatial_operators_interface), pointer :: spatial_operators_ptr
-  procedure(update_state_interface), pointer :: update_state_ptr
-  procedure(calc_total_mass_interface), pointer :: calc_total_mass_ptr
-  procedure(calc_total_energy_interface), pointer :: calc_total_energy_ptr
-  procedure(calc_total_potential_enstropy_interface), pointer :: calc_total_potential_enstropy_ptr
-  procedure(calc_total_absolute_vorticity_interface), pointer :: calc_total_absolute_vorticity_ptr
-
 contains
 
   subroutine tmcore_sw_init(namelist_file_path)
 
     character(*), intent(in) :: namelist_file_path
-
-    spatial_operators_ptr => spatial_operators
-    update_state_ptr => update_state
-    calc_total_mass_ptr => calc_total_mass
-    calc_total_energy_ptr => calc_total_energy
-    calc_total_potential_enstropy_ptr => calc_total_potential_enstropy
-    calc_total_absolute_vorticity_ptr => calc_total_absolute_vorticity
 
     call params_parse_namelist(namelist_file_path)
     call log_init()
@@ -49,7 +35,7 @@ contains
     call static_init()
     call state_init()
     call tend_init()
-    call diag_init(calc_total_mass_ptr, calc_total_energy_ptr, calc_total_potential_enstropy_ptr, calc_total_absolute_vorticity_ptr)
+    call diag_init(calc_total_mass, calc_total_energy, calc_total_potential_enstropy, calc_total_absolute_vorticity)
     call history_init()
 
   end subroutine tmcore_sw_init
@@ -77,16 +63,14 @@ contains
     call log_step()
 
     do while (.not. time_is_finished())
-      call time_integrate(spatial_operators_ptr, update_state_ptr)
+      call time_integrate(spatial_operators, update_state)
       call time_advance()
-      
       call scalar_c2e_interp_operator(state(old)%cell  %gd , state(old)%edge  %gd   , adv_order            , state(old)%edge%u, adv_monotonic)
       call inverse_iap_sw_operator   (state(old)%edge  %gd , state(old)%edge  %iap_u, state(old)%edge  %u                                    )
       call scalar_c2v_interp_operator(state(old)%cell  %gd , state(old)%vertex%gd                                                            )
       call curl_operator             (state(old)%edge  %u  , state(old)%vertex%vor                                                           )
       call calc_pv_on_vertex         (state(old)%vertex%vor, state(old)%vertex%gd   , state(old)%vertex%pv                                   )
       call diag_run(state(old), static)
-      
       if (time_is_alerted('hist0.output')) call history_write(state(old), static)
       call log_step()
     end do
@@ -212,4 +196,5 @@ contains
     state%total_absolute_vorticity = sum((state%vertex%vor + fVertex) * areaTriangle) / sum(areaTriangle)
 
   end subroutine calc_total_absolute_vorticity
+
 end module tmcore_sw_mod
