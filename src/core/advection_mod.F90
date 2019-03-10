@@ -34,7 +34,7 @@ module advection_mod
       real (kind=real_kind) :: xm, ym, zm, dl, xec, yec, zec
       real (kind=real_kind) :: thetae_tmp, xe_tmp, ye_tmp
       real (kind=real_kind) :: xv1, xv2, yv1, yv2, zv1, zv2
-      integer :: i, j, k, ip1, ip2, m, nReconstructCells, ip1a, ii
+      integer :: i, j, k, ip1, ip2, m, n, ip1a, ii
       integer :: iCell, iEdge
       real (kind=real_kind) :: x0, y0, x1, y1, x2, y2, x3, y3, x4, y4, x5, y5
       real (kind=real_kind) :: pdx1, pdx2, pdx3, pdy1, pdy2, pdy3, dx1, dx2, dy1, dy2
@@ -47,7 +47,8 @@ module advection_mod
       integer, dimension(25) :: cell_list
 
       integer :: cell1, cell2
-      integer, parameter :: polynomial_order = 4
+      integer, parameter :: polynomial_order = 2
+!      logical, parameter :: least_squares = .false.
       logical, parameter :: least_squares = .true.
       logical :: add_the_cell, do_the_cell
 
@@ -69,231 +70,228 @@ module advection_mod
 
       do iCell = 1, nCells !  is this correct? - we need first halo cell also...
 
-        cell_list(1) = iCell
-        do i = 2, nEdgesOnCell(iCell)+1
-           cell_list(i) = cellsOnCell(i-1,iCell)
-        end do
-        nReconstructCells = nEdgesOnCell(iCell) + 1
+         cell_list(1) = iCell
+         do i = 2, nEdgesOnCell(iCell)+1
+            cell_list(i) = cellsOnCell(i-1,iCell)
+         end do
+         n = nEdgesOnCell(iCell) + 1
 
-        if ( polynomial_order > 2 .and. polynomial_order <= 4) then
-           do i = 2, nEdgesOnCell(iCell) + 1
-              do j = 1, nEdgesOnCell( cell_list(i) )
-                 cell_add = CellsOnCell(j,cell_list(i))
-                 add_the_cell = .true.
-                 do k=1,nReconstructCells
-                    if ( cell_add == cell_list(k) ) add_the_cell = .false.
-                 end do
-                 if (add_the_cell) then
-                    nReconstructCells = nReconstructCells+1
-                    cell_list(nReconstructCells) = cell_add
-                 end if
-              end do
-           end do
-        else
-          stop 'Unknown polynomial order'
-        end if
+         if ( polynomial_order > 2 ) then
+            do i = 2, nEdgesOnCell(iCell) + 1
+               do j = 1, nEdgesOnCell( cell_list(i) )
+                  cell_add = CellsOnCell(j,cell_list(i))
+                  add_the_cell = .true.
+                  do k=1,n
+                     if ( cell_add == cell_list(k) ) add_the_cell = .false.
+                  end do
+                  if (add_the_cell) then
+                     n = n+1
+                     cell_list(n) = cell_add
+                  end if
+               end do
+            end do
+         end if
+ 
+         advCells(1,iCell) = n
 
 !  check to see if we are reaching outside the halo
 
-        do_the_cell = .true.
-        do i = 1, nReconstructCells
-          if (cell_list(i) > nCells) do_the_cell = .false.
-        end do
+         do_the_cell = .true.
+         do i = 1, n
+            if (cell_list(i) > nCells) do_the_cell = .false.
+         end do
 
-        if ( .not. do_the_cell ) cycle
+         if ( .not. do_the_cell ) cycle
 
 !  compute polynomial fit for this cell if all needed neighbors exist
 
-        do i = 1, nReconstructCells
-          advCells(i,iCell) = cell_list(i)
-          
-          xc(i) = xCell(advCells(i,iCell)) / sphere_radius
-          yc(i) = yCell(advCells(i,iCell)) / sphere_radius
-          zc(i) = zCell(advCells(i,iCell)) / sphere_radius
-        end do
+         do i = 1, n
+            advCells(i+1,iCell) = cell_list(i)
+            xc(i) = xCell(advCells(i+1,iCell)) / sphere_radius
+            yc(i) = yCell(advCells(i+1,iCell)) / sphere_radius
+            zc(i) = zCell(advCells(i+1,iCell)) / sphere_radius
+         end do
 
-        theta_abs(iCell) = 0.5d0*pi - sphere_angle( xc(1), yc(1), zc(1),&
-                                                    xc(2), yc(2), zc(2),&
-                                                    0.d0 , 0.d0 , 1.d0 ) 
+         theta_abs(iCell) =  pi/2. - sphere_angle( xc(1), yc(1), zc(1),  &
+                                                    xc(2), yc(2), zc(2),  &
+                                                    0.0_real_kind, 0.0_real_kind, 1.0_real_kind ) 
 
 ! angles from cell center to neighbor centers (thetav)
 
-        do i = 1, nReconstructCells-1
+         do i = 1, n-1
    
-          ip2 = i+2
-          if (ip2 > nReconstructCells) ip2 = 2
+            ip2 = i+2
+            if (ip2 > n) ip2 = 2
     
-          thetav(i) = sphere_angle( xc(1  ), yc(1  ), zc(1  ), &
-                                    xc(i+1), yc(i+1), zc(i+1), &
-                                    xc(ip2), yc(ip2), zc(ip2) )
+            thetav(i) = sphere_angle( xc(1),   yc(1),   zc(1),    &
+                                      xc(i+1), yc(i+1), zc(i+1),  &
+                                      xc(ip2), yc(ip2), zc(ip2)   )
 
-          dl_sphere(i) = sphere_radius*arc_length( xc(1  ), yc(1  ), zc(1  ), &
-                                                   xc(i+1), yc(i+1), zc(i+1) )
-        end do
+            dl_sphere(i) = sphere_radius*arc_length( xc(1),   yc(1),   zc(1),  &
+                                                     xc(i+1), yc(i+1), zc(i+1) )
+         end do
 
-        length_scale = 1.0_real_kind
-        do i = 1, nReconstructCells-1
-          dl_sphere(i) = dl_sphere(i) / length_scale
-        end do
+         length_scale = 1.
+         do i = 1, n-1
+            dl_sphere(i) = dl_sphere(i) / length_scale
+         end do
 
-!        thetat(1) = 0.  !  this defines the x direction, cell center 1 -> 
-        thetat(1) = theta_abs(iCell)  !  this defines the x direction, longitude line
-        do i=2,nReconstructCells-1
-          thetat(i) = thetat(i-1) + thetav(i-1)
-        end do
+!         thetat(1) = 0.  !  this defines the x direction, cell center 1 -> 
+         thetat(1) = theta_abs(iCell)  !  this defines the x direction, longitude line
+         do i=2,n-1
+            thetat(i) = thetat(i-1) + thetav(i-1)
+         end do
    
-        do i=1,nReconstructCells-1
-          xp(i) = cos(thetat(i)) * dl_sphere(i)
-          yp(i) = sin(thetat(i)) * dl_sphere(i)
-        end do
+         do i=1,n-1
+            xp(i) = cos(thetat(i)) * dl_sphere(i)
+            yp(i) = sin(thetat(i)) * dl_sphere(i)
+         end do
 
-        ma = nReconstructCells-1
-        mw = nEdgesOnCell(iCell)
+         ma = n-1
+         mw = nEdgesOnCell(iCell)
 
-        bmatrix = 0.d0
-        amatrix = 0.d0
-        wmatrix = 0.d0
+         bmatrix = 0.d0
+         amatrix = 0.d0
+         wmatrix = 0.d0
 
-        if (polynomial_order == 2) then
-          na = 6
-          ma = ma+1
+         if (polynomial_order == 2) then
+            na = 6
+            ma = ma+1
   
-          amatrix(1,1) = 1.d0
-          wmatrix(1,1) = 1.d0
-          do i=2,ma
-             amatrix(i,1) = 1.d0
-             amatrix(i,2) = xp(i-1)
-             amatrix(i,3) = yp(i-1)
-             amatrix(i,4) = xp(i-1)**2
-             amatrix(i,5) = xp(i-1) * yp(i-1)
-             amatrix(i,6) = yp(i-1)**2
+            amatrix(1,1) = 1.d0
+            wmatrix(1,1) = 1.d0
+            do i=2,ma
+               amatrix(i,1) = 1.
+               amatrix(i,2) = xp(i-1)
+               amatrix(i,3) = yp(i-1)
+               amatrix(i,4) = xp(i-1)**2
+               amatrix(i,5) = xp(i-1) * yp(i-1)
+               amatrix(i,6) = yp(i-1)**2
    
-             wmatrix(i,i) = 1.d0
-          end do
+               wmatrix(i,i) = 1.d0
+            end do
  
-        else if (polynomial_order == 3) then
-          na = 10
-          ma = ma+1
+         else if (polynomial_order == 3) then
+            na = 10
+            ma = ma+1
   
-          amatrix(1,1) = 1.d0
-          wmatrix(1,1) = 1.d0
-          do i=2,ma
-             amatrix(i,1) = 1.d0
-             amatrix(i,2) = xp(i-1)
-             amatrix(i,3) = yp(i-1)
+            amatrix(1,1) = 1.d0
+            wmatrix(1,1) = 1.d0
+            do i=2,ma
+               amatrix(i,1) = 1.d0
+               amatrix(i,2) = xp(i-1)
+               amatrix(i,3) = yp(i-1)
    
-             amatrix(i,4) = xp(i-1)**2
-             amatrix(i,5) = xp(i-1) * yp(i-1)
-             amatrix(i,6) = yp(i-1)**2
+               amatrix(i,4) = xp(i-1)**2
+               amatrix(i,5) = xp(i-1) * yp(i-1)
+               amatrix(i,6) = yp(i-1)**2
    
-             amatrix(i,7) = xp(i-1)**3
-             amatrix(i,8) = yp(i-1) * (xp(i-1)**2)
-             amatrix(i,9) = xp(i-1) * (yp(i-1)**2)
-             amatrix(i,10) = yp(i-1)**3
+               amatrix(i,7) = xp(i-1)**3
+               amatrix(i,8) = yp(i-1) * (xp(i-1)**2)
+               amatrix(i,9) = xp(i-1) * (yp(i-1)**2)
+               amatrix(i,10) = yp(i-1)**3
    
-             wmatrix(i,i) = 1.d0
+               wmatrix(i,i) = 1.d0
  
-          end do
+            end do
 
-        else if (polynomial_order == 4) then
-          na = 15
-          ma = ma+1
-          
-          amatrix(1,1) = 1.d0
-          wmatrix(1,1) = 1.d0
-          do i=2,ma
-            amatrix(i,1) = 1.
-            amatrix(i,2) = xp(i-1)
-            amatrix(i,3) = yp(i-1)
-          
-            amatrix(i,4) = xp(i-1)**2
-            amatrix(i,5) = xp(i-1) * yp(i-1)
-            amatrix(i,6) = yp(i-1)**2
-          
-            amatrix(i,7) = xp(i-1)**3
-            amatrix(i,8) = yp(i-1) * (xp(i-1)**2)
-            amatrix(i,9) = xp(i-1) * (yp(i-1)**2)
-            amatrix(i,10) = yp(i-1)**3
-          
-            amatrix(i,11) = xp(i-1)**4
-            amatrix(i,12) = yp(i-1) * (xp(i-1)**3)
-            amatrix(i,13) = (xp(i-1)**2)*(yp(i-1)**2)
-            amatrix(i,14) = xp(i-1) * (yp(i-1)**3)
-            amatrix(i,15) = yp(i-1)**4
-          
-            wmatrix(i,i) = 1.d0
-          
-          end do
-          
-          do i=1,mw
-            wmatrix(i,i) = 1.d0
-          end do
-          
-        else
-          stop 'Unknown polynomial order'
-        end if
+         else
+            na = 15
+            ma = ma+1
+  
+            amatrix(1,1) = 1.d0
+            wmatrix(1,1) = 1.d0
+            do i=2,ma
+               amatrix(i,1) = 1.
+               amatrix(i,2) = xp(i-1)
+               amatrix(i,3) = yp(i-1)
+   
+               amatrix(i,4) = xp(i-1)**2
+               amatrix(i,5) = xp(i-1) * yp(i-1)
+               amatrix(i,6) = yp(i-1)**2
+   
+               amatrix(i,7) = xp(i-1)**3
+               amatrix(i,8) = yp(i-1) * (xp(i-1)**2)
+               amatrix(i,9) = xp(i-1) * (yp(i-1)**2)
+               amatrix(i,10) = yp(i-1)**3
+   
+               amatrix(i,11) = xp(i-1)**4
+               amatrix(i,12) = yp(i-1) * (xp(i-1)**3)
+               amatrix(i,13) = (xp(i-1)**2)*(yp(i-1)**2)
+               amatrix(i,14) = xp(i-1) * (yp(i-1)**3)
+               amatrix(i,15) = yp(i-1)**4
+   
+               wmatrix(i,i) = 1.d0
+  
+            end do
  
-        call swm_poly_fit_2( amatrix, bmatrix, wmatrix, ma, na, 25 )
+            do i=1,mw
+               wmatrix(i,i) = 1.d0
+            end do
+ 
+         end if
+ 
+         call sw_poly_fit_2( amatrix, bmatrix, wmatrix, ma, na, 25 )
 
-        do i = 1, nEdgesOnCell(iCell)
-          ip1 = i+1
-          if (ip1 > nReconstructCells-1) ip1 = 1
+         do i = 1, nEdgesOnCell(iCell)
+            ip1 = i+1
+            if (ip1 > n-1) ip1 = 1
   
-          iEdge = edgesOnCell(i,iCell)
-          xv1 = xVertex(verticesOnEdge(1, iEdge)) / sphere_radius
-          yv1 = yVertex(verticesOnEdge(1, iEdge)) / sphere_radius
-          zv1 = zVertex(verticesOnEdge(1, iEdge)) / sphere_radius
-          xv2 = xVertex(verticesOnEdge(2, iEdge)) / sphere_radius
-          yv2 = yVertex(verticesOnEdge(2, iEdge)) / sphere_radius
-          zv2 = zVertex(verticesOnEdge(2, iEdge)) / sphere_radius
+            iEdge = edgesOnCell(i,iCell)
+            xv1 = xVertex(verticesOnEdge(1, iEdge)) / sphere_radius
+            yv1 = yVertex(verticesOnEdge(1, iEdge)) / sphere_radius
+            zv1 = zVertex(verticesOnEdge(1, iEdge)) / sphere_radius
+            xv2 = xVertex(verticesOnEdge(2, iEdge)) / sphere_radius
+            yv2 = yVertex(verticesOnEdge(2, iEdge)) / sphere_radius
+            zv2 = zVertex(verticesOnEdge(2, iEdge)) / sphere_radius
   
-          call swm_arc_bisect( xv1, yv1, zv1,  &
-                               xv2, yv2, zv2,  &
-                               xec, yec, zec   )
+            call sw_arc_bisect( xv1, yv1, zv1,  &
+                                xv2, yv2, zv2,  &
+                                xec, yec, zec   )
   
-          thetae_tmp = sphere_angle( xc(1),   yc(1),   zc(1),    &
-                                     xc(i+1), yc(i+1), zc(i+1),  &
-                                     xec,     yec,     zec       )
-          thetae_tmp = thetae_tmp + thetat(i)
-          if (iCell == cellsOnEdge(1,iEdge)) then
-             thetae(1, iEdge) = thetae_tmp
-          else
-             thetae(2, iEdge) = thetae_tmp
-          end if
+            thetae_tmp = sphere_angle( xc(1),   yc(1),   zc(1),    &
+                                       xc(i+1), yc(i+1), zc(i+1),  &
+                                       xec,     yec,     zec       )
+            thetae_tmp = thetae_tmp + thetat(i)
+            if (iCell == cellsOnEdge(1,iEdge)) then
+               thetae(1, iEdge) = thetae_tmp
+            else
+               thetae(2, iEdge) = thetae_tmp
+            end if
   
-        end do
+         end do
 
 !  fill second derivative stencil for rk advection 
 
-        do i = 1, nEdgesOnCell(iCell)
-          iEdge = edgesOnCell(i,iCell)
+         do i = 1, nEdgesOnCell(iCell)
+            iEdge = edgesOnCell(i,iCell)
   
-          if (iCell == cellsOnEdge(1,iEdge)) then
-            cos2t    = cos(thetae(1, iEdge))
-            sin2t    = sin(thetae(1, iEdge))
-            costsint = cos2t*sin2t
-            cos2t    = cos2t**2
-            sin2t    = sin2t**2
+           if (iCell == cellsOnEdge(1,iEdge)) then
+             cos2t    = cos(thetae(1, iEdge))
+             sin2t    = sin(thetae(1, iEdge))
+             costsint = cos2t*sin2t
+             cos2t    = cos2t**2
+             sin2t    = sin2t**2
    
-            do j = 1, nReconstructCells
-              deriv_two(j,1,iEdge) =   2.*cos2t    * bmatrix(4,j)  &
-                                     + 2.*costsint * bmatrix(5,j)  &
-                                     + 2.*sin2t    * bmatrix(6,j)
-            end do
-          else
-            cos2t    = cos(thetae(2, iEdge))
-            sin2t    = sin(thetae(2, iEdge))
-            costsint = cos2t*sin2t
-            cos2t    = cos2t**2
-            sin2t    = sin2t**2
+             do j = 1, n
+                deriv_two(j,1,iEdge) =   2.*cos2t    * bmatrix(4,j)  &
+                                       + 2.*costsint * bmatrix(5,j)  &
+                                       + 2.*sin2t    * bmatrix(6,j)
+             end do
+           else
+             cos2t    = cos(thetae(2, iEdge))
+             sin2t    = sin(thetae(2, iEdge))
+             costsint = cos2t*sin2t
+             cos2t    = cos2t**2
+             sin2t    = sin2t**2
       
-            do j=1,nReconstructCells
-              deriv_two(j,2,iEdge) =   2.*cos2t    * bmatrix(4,j)  &
-                                     + 2.*costsint * bmatrix(5,j)  &
-                                     + 2.*sin2t    * bmatrix(6,j)
-            end do
-          end if
-        end do
+             do j=1,n
+               deriv_two(j,2,iEdge) =   2.*cos2t    * bmatrix(4,j)  &
+                                      + 2.*costsint * bmatrix(5,j)  &
+                                      + 2.*sin2t    * bmatrix(6,j)
+             end do
+           end if
+         end do
  
       end do ! end of loop over cells
 
@@ -437,13 +435,13 @@ module advection_mod
    
    
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   ! subroutine swm_arc_bisect
+   ! subroutine sw_arc_bisect
    !
    ! Returns the point C=(cx, cy, cz) that bisects the great circle arc from
    !   A=(ax, ay, az) to B=(bx, by, bz). It is assumed that A and B lie on the
    !   surface of a sphere centered at the origin.
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   subroutine swm_arc_bisect(ax, ay, az, bx, by, bz, cx, cy, cz)
+   subroutine sw_arc_bisect(ax, ay, az, bx, by, bz, cx, cy, cz)
    
       implicit none
    
@@ -468,10 +466,10 @@ module advection_mod
          cz = r * cz / d
       end if
    
-   end subroutine swm_arc_bisect
+   end subroutine sw_arc_bisect
 
 
-   subroutine swm_poly_fit_2(a_in,b_out,weights_in,m,n,ne)
+   subroutine sw_poly_fit_2(a_in,b_out,weights_in,m,n,ne)
 
       implicit none
 
@@ -507,14 +505,14 @@ module advection_mod
       ata = matmul(at,a)
 
 !      if (m == n) then
-!         call swm_migs(a,n,b,indx)
+!         call sw_migs(a,n,b,indx)
 !      else
 
-         call swm_migs(atha,n,atha_inv,indx)
+         call sw_migs(atha,n,atha_inv,indx)
 
          b = matmul(atha_inv,ath)
 
-!         call swm_migs(ata,n,ata_inv,indx)
+!         call sw_migs(ata,n,ata_inv,indx)
 !         b = matmul(ata_inv,at)
 !      end if
       b_out(1:n,1:m) = b(1:n,1:m)
@@ -525,7 +523,7 @@ module advection_mod
 !
 !     write(6,*) ' '
 
-   end subroutine swm_poly_fit_2
+   end subroutine sw_poly_fit_2
 
 
 ! Updated 10/24/2001.
@@ -544,7 +542,7 @@ module advection_mod
 !                                                                       !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
-subroutine swm_migs (A,N,X,INDX)
+subroutine sw_migs (A,N,X,INDX)
 !
 ! subroutine to invert matrix A(N,N) with the inverse stored
 ! in X(N,N) in the output.  Copyright (c) Tao Pang 2001.
@@ -566,7 +564,7 @@ subroutine swm_migs (A,N,X,INDX)
     B(I,I) = 1.0
   END DO
 !
-  call swm_elgs (A,N,INDX)
+  call sw_elgs (A,N,INDX)
 !
   DO I = 1, N-1
     DO J = I+1, N
@@ -586,10 +584,10 @@ subroutine swm_migs (A,N,X,INDX)
       X(J,I) =  X(J,I)/A(INDX(J),J)
     END DO
   END DO
-end subroutine swm_migs
+end subroutine sw_migs
 
 
-subroutine swm_elgs (A,N,INDX)
+subroutine sw_elgs (A,N,INDX)
 !
 ! subroutine to perform the partial-pivoting Gaussian elimination.
 ! A(N,N) is the original matrix in the input and transformed matrix
@@ -652,6 +650,6 @@ subroutine swm_elgs (A,N,INDX)
     END DO
   END DO
 !
-end subroutine swm_elgs
+end subroutine sw_elgs
 
 end module advection_mod
