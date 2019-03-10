@@ -2,6 +2,7 @@ module test_cases_mod
 
   use params_mod
   use log_mod
+  use state_mod
   use mountain_zonal_flow_test_mod
   use steady_geostrophic_flow_test_mod
   use rossby_haurwitz_wave_test_mod
@@ -31,13 +32,14 @@ contains
 
   end subroutine test_cases_set_initial_condition
 
-  subroutine test_cases_update_wind(time_idx)
+  subroutine test_cases_update_wind(seconds, state)
 
-    integer, intent(in) :: time_idx
+    real(real_kind),  intent(in)    :: seconds
+    type(state_type), intent(inout) :: state
 
     select case (case_name)
     case ('cosine_bell_rotation')
-      call cosine_bell_rotation_test_update_wind(time_idx)
+      call cosine_bell_rotation_test_update_wind(seconds, state)
     case default
       call log_error('Unknown test case ' // trim(case_name) // '!')
     end select

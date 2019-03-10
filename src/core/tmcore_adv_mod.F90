@@ -3,6 +3,7 @@ module tmcore_adv_mod
   use params_mod
   use log_mod
   use mesh_mod
+  use operators_mod
   use advection_mod
   use time_mod, old => old_time_idx, new => new_time_idx
   use static_mod
@@ -30,7 +31,7 @@ contains
     character(*), intent(in) :: namelist_file_path
     procedure(update_wind_interface) update_wind
 
-    update_wind_ptr       => update_wind
+    update_wind_ptr => update_wind
 
     call params_parse_namelist(namelist_file_path)
     call log_init()
@@ -62,7 +63,6 @@ contains
     call log_step()
 
     do while (.not. time_is_finished())
-      call update_wind_ptr(old)
       call time_integrate(spatial_operators, update_state)
       call time_advance()
       if (time_is_alerted('hist0.output')) call history_write(state(old), static)
@@ -76,6 +76,9 @@ contains
     type(state_type), intent(inout) :: state
     type(tend_type),  intent(inout) :: tend
 
+    call scalar_c2e_interp_operator(state%cell%gd, state%edge%gd, adv_order    , state%edge%u, adv_monotonic)
+    call calc_gd_tend_on_cell      (state%edge%u , state%edge%gd, tend %cell%gd)
+
   end subroutine spatial_operators
 
   subroutine update_state(dt, tend, old_state, new_state)
@@ -85,10 +88,25 @@ contains
     type(state_type), intent(in)    :: old_state
     type(state_type), intent(inout) :: new_state
 
-    new_state%edge%iap_u = old_state%edge%iap_u + dt * tend%edge%iap_u
-    new_state%cell%gd    = old_state%cell%gd    + dt * tend%cell%gd
+    new_state%cell%gd = old_state%cell%gd + dt * tend%cell%gd
+    call update_wind_ptr(time_elapsed_seconds() + dt, new_state)
 
   end subroutine update_state
+
+  subroutine calc_gd_tend_on_cell(u_edge, gd_edge, gd_tend_cell)
+
+    real(real_kind), intent(in)  :: u_edge      (:)
+    real(real_kind), intent(in)  :: gd_edge     (:)
+    real(real_kind), intent(out) :: gd_tend_cell(:)
+
+    real(real_kind) flux(lbound(u_edge, 1):ubound(u_edge, 1))
+    integer iCell
+
+    flux = u_edge * gd_edge
+
+    call div_operator(flux, gd_tend_cell)
+
+  end subroutine calc_gd_tend_on_cell
 
   subroutine calc_total_mass(state)
 

@@ -38,13 +38,14 @@ contains
       end if
     end do
 
-    call cosine_bell_rotation_test_update_wind(1)
+    call cosine_bell_rotation_test_update_wind(0.0d0, state(1))
 
   end subroutine cosine_bell_rotation_test_set_initial_condition
 
-  subroutine cosine_bell_rotation_test_update_wind(time_idx)
+  subroutine cosine_bell_rotation_test_update_wind(seconds, state)
 
-    integer, intent(in) :: time_idx
+    real(real_kind),  intent(in)    :: seconds
+    type(state_type), intent(inout) :: state
 
     real(real_kind) cos_lat, sin_lat, cos_lon, cos_alpha, sin_alpha, dlon, d
     real(real_kind) psi_vertex(nVertices)
@@ -53,15 +54,15 @@ contains
     cos_alpha = cos(alpha)
     sin_alpha = sin(alpha)
 
-    do iVertex = lbound(state(1)%vertex%pv, 1), ubound(state(1)%vertex%pv, 1)
+    do iVertex = lbound(state%vertex%pv, 1), ubound(state%vertex%pv, 1)
       cos_lat = cos(latVertex(iVertex))
       sin_lat = sin(latVertex(iVertex))
       cos_lon = cos(lonVertex(iVertex))
       psi_vertex(iVertex) = - radius * u0 * (sin_lat * cos_alpha - cos_lon * cos_lat * sin_alpha)
     end do
 
-    do iEdge = lbound(state(1)%edge%u, 1), ubound(state(1)%edge%u, 1)
-      state(time_idx)%edge%u(iEdge) = - (psi_vertex(verticesOnEdge(2,iEdge)) - psi_vertex(verticesOnEdge(1,iEdge))) / dvEdge(iEdge)
+    do iEdge = lbound(state%edge%u, 1), ubound(state%edge%u, 1)
+      state%edge%u(iEdge) = - (psi_vertex(verticesOnEdge(2,iEdge)) - psi_vertex(verticesOnEdge(1,iEdge))) / dvEdge(iEdge)
     end do
 
   end subroutine cosine_bell_rotation_test_update_wind
