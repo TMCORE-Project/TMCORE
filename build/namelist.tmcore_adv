@@ -5,7 +5,7 @@ dt        = 1800
 
 &io_control
 history_periods    = '6 hours'
-output_file_prefix = 'case4.sc.40962'
+output_file_prefix = 'case4.sc.163842'
 frames_per_file    = '2 months'
 /
 
@@ -14,7 +14,7 @@ conserve_energy = .false.
 time_scheme     = 2
 adv_order       = 3
 adv_monotonic   = .true.
-mesh_file_path  = './x1.40962.grid.nc'
+mesh_file_path  = './x1.163842.grid.nc'
 /
 
 &test_case
