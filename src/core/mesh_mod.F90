@@ -62,9 +62,6 @@ module mesh_mod
 
   real(real_kind), allocatable :: fCell(:)                ! Coriolis coefficients on a given cell
   real(real_kind), allocatable :: fVertex(:)              ! Coriolis coefficients on a given vertex
-  
-  !Derive
-  real(real_kind), allocatable :: deriv_two(:,:,:)        ! 2nd order derivative for high order advection
 
 contains
 
@@ -303,7 +300,6 @@ contains
     allocate(fVertex(nVertices))
     allocate(nSignEdge(maxEdges,nCells))
     allocate(tSignEdge(vertexDegree,nVertices))
-    allocate(deriv_two(15,2,nEdges))
 
     nCellsOnVertex = vertexDegree
     areaEdge       = dvEdge(:) * dcEdge(:)
@@ -393,7 +389,6 @@ contains
     if (allocated(fVertex))           deallocate(fVertex)
     if (allocated(nSignEdge))         deallocate(nSignEdge)
     if (allocated(tSignEdge))         deallocate(tSignEdge)
-    if (allocated(deriv_two))         deallocate(deriv_two)
 
   end subroutine mesh_final
 
