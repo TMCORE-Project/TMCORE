@@ -6,7 +6,6 @@ module operators_mod
   use static_mod
   use state_mod
   use tend_mod
-  use advection_mod
 
   implicit none
 
@@ -89,120 +88,17 @@ contains
 
   end subroutine curl_operator
 
-  subroutine scalar_c2e_interp_operator(f_cell, f_edge, adv_order_input, u_edge, monotonic_input) !, coef_3rd_order_input)
+  subroutine scalar_c2e_interp_operator(f_cell, f_edge)
 
-    real   (real_kind), intent(in )           :: f_cell(:)
-    real   (real_kind), intent(out)           :: f_edge(:)
+    real(real_kind), intent(in ) :: f_cell(:)
+    real(real_kind), intent(out) :: f_edge(:)
 
-    integer           , intent(in ), optional :: adv_order_input
-    real   (real_kind), intent(in ), optional :: u_edge(:)
-    logical           , intent(in ), optional :: monotonic_input
-    !real   (real_kind), intent(in ), optional :: coef_3rd_order_input
-    
-    integer                                   :: adv_order      = 2
-    real   (real_kind)                        :: coef_3rd_order = 0.5d0
-    real   (real_kind)                        :: coef_5rd_order = 0.25d0
-    logical                                   :: monotonic      = .false.
-    
-    real   (real_kind) :: d2fdx2_cell1, d2fdx2_cell2 ! 2nd order derive
-    real   (real_kind) :: d4fdx4_cell1, d4fdx4_cell2 ! 4nd order derive
-    
-    integer cell1,cell2
-    integer i,iEdge
+    integer iEdge
 
-    if(present(adv_order_input     )) adv_order       = adv_order_input
-    if(present(monotonic_input     )) monotonic       = monotonic_input
-    !if(present(coef_3rd_order_input)) coef_3rd_order  = coef_3rd_order_input
-    
-    !
-    ! Compute height on cell edges at velocity locations
-    !   Namelist options control the order of accuracy of the reconstructed h_edge value
-    !
-    
-    coef_3rd_order = 0.d0
-    if (adv_order == 3                ) coef_3rd_order = 1.d0
-    if (adv_order == 3 .and. monotonic) coef_3rd_order = 0.25d0
-    if (adv_order >= 4                ) coef_3rd_order = 0.d0
-    if (adv_order == 6                ) coef_5rd_order = 0.d0
-    
-    if (adv_order >= 2) then
-    
-      do iEdge = lbound(f_edge, 1), ubound(f_edge, 1)
-        f_edge(iEdge) = 0.5d0 * ( f_cell(cellsOnEdge(1,iEdge)) &
-                                + f_cell(cellsOnEdge(2,iEdge)) &
-                                )
-      end do
-    
-      if ( adv_order == 3 .or. adv_order == 4 ) then
-      
-         do iEdge = lbound(f_edge, 1), ubound(f_edge, 1)
-           cell1 = cellsOnEdge(1,iEdge)
-           cell2 = cellsOnEdge(2,iEdge)
-           
-           d2fdx2_cell1 = 0.d0
-           d2fdx2_cell2 = 0.d0
-           
-           !-- all edges of cell 1
-           do i = 1, nFitCells3(cell1)
-             d2fdx2_cell1 = d2fdx2_cell1 + deriv_two(i,1,iEdge) * f_cell(adv3Cells(i,cell1))
-           end do
-           
-           !-- all edges of cell 2
-           do i = 1, nFitCells3(cell2)
-             d2fdx2_cell2 = d2fdx2_cell2 + deriv_two(i,2,iEdge) * f_cell(adv3Cells(i,cell2))
-           end do
-           
-           f_edge(iEdge) = f_edge(iEdge)                                                                          &
-                           - dcEdge(iEdge)**2                                                                     &
-                           * (                                             (d2fdx2_cell1 + d2fdx2_cell2)          &
-                             - sign(1.d0,u_edge(iEdge)) * coef_3rd_order * (d2fdx2_cell2 - d2fdx2_cell1)) / 12.d0
-           
-         end do     ! do iEdge
-         
-      endif   ! if(adv_order == 3, 4)
-      
-      if ( adv_order == 5 .or. adv_order == 6 ) then
-        do iEdge = lbound(f_edge, 1), ubound(f_edge, 1)
-          cell1 = cellsOnEdge(1,iEdge)
-          cell2 = cellsOnEdge(2,iEdge)
-            
-          ! Compute 2nd order derives
-          d2fdx2_cell1 = 0.d0
-          d2fdx2_cell2 = 0.d0
-          
-          !-- all edges of cell 1
-          do i = 1, nFitCells3(cell1)
-            d2fdx2_cell1 = d2fdx2_cell1 + deriv_two(i,1,iEdge) * f_cell(adv3Cells(i,cell1))
-          end do
-          
-          !-- all edges of cell 2
-          do i = 1, nFitCells3(cell2)
-            d2fdx2_cell2 = d2fdx2_cell2 + deriv_two(i,2,iEdge) * f_cell(adv3Cells(i,cell2))
-          end do
-          
-          ! Compute 4th order derives
-          d4fdx4_cell1 = 0.d0
-          d4fdx4_cell2 = 0.d0
-          
-          do i = 1, nFitCells5(cell1)
-            d4fdx4_cell1 = d4fdx4_cell1 + deriv_four(i,1,iEdge) * f_cell(adv5Cells(i,cell1))
-          end do
-          
-          do i = 1, nFitCells5(cell2)
-            d4fdx4_cell2 = d4fdx4_cell2 + deriv_four(i,2,iEdge) * f_cell(adv5Cells(i,cell2))
-          end do
-          
-          f_edge(iEdge) =  f_edge(iEdge)                                                                       &
-                         - dcEdge(iEdge)**2 * (d2fdx2_cell1 + d2fdx2_cell2) / 12.d0                            &
-                         + dcEdge(iEdge)**4                                                                    &
-                         * (                                             (d4fdx4_cell1 + d4fdx4_cell2)         &
-                           - sign(1.d0,u_edge(iEdge)) * coef_5rd_order * (d4fdx4_cell2 - d4fdx4_cell1)) / 60.d0
-        end do     ! do iEdge
-        
-      endif   ! if(adv_order == 5, 6)
-      
-    endif   ! if(adv_order >= 2)
-    
+    do iEdge = lbound(f_edge, 1), ubound(f_edge, 1)
+      f_edge(iEdge) = 0.5d0 * (f_cell(cellsOnEdge(1,iEdge)) + f_cell(cellsOnEdge(2,iEdge)))
+    end do
+
   end subroutine scalar_c2e_interp_operator
 
   subroutine scalar_c2v_interp_operator(f_cell, f_vertex)

@@ -22,9 +22,9 @@ module params_mod
     dt
 
   character(max_name_len) history_periods(1)
-  character(max_name_len) :: time_units = 'days'
+  character(max_name_len)      :: time_units         = 'days'
   character(max_file_path_len) :: output_file_prefix = 'N/A'
-  character(max_name_len) :: frames_per_file = 'N/A'
+  character(max_name_len)      :: frames_per_file    = 'N/A'
 
   namelist /io_control/   &
     history_periods     , &
@@ -32,15 +32,14 @@ module params_mod
     output_file_prefix  , &
     frames_per_file
 
-  integer time_scheme                 ! Time integration scheme
-  integer energy_scheme               ! Total energy conservation scheme, 1: tau_n = 2.d0*(phi,F)/(phi,phi); 2: tau_n = beta_n*dt
-  integer pv_scheme                   ! 1: APVM; 2: CLUST 4: conservative_APVM
-  logical :: conserve_energy = .true.
-  real(real_kind) :: apvm_weight = 0.5
+  integer time_scheme   ! Time integration scheme
+  integer energy_scheme ! Total energy conservation scheme, 1: tau_n = 2.d0*(phi,F)/(phi,phi); 2: tau_n = beta_n*dt
+  integer pv_scheme     ! 1: APVM; 2: CLUST 4: conservative_APVM
+  logical :: conserve_energy      = .true.
+  real(real_kind) :: apvm_weight  = 0.5
   real(real_kind) :: clust_weight = 0.25
-  integer         :: adv_order = 2
-  logical         :: adv_monotonic = .false.
-  real(real_kind) :: coef_3rd_order = 1.d0
+  integer         :: adv_order    = 2
+  logical         :: adv_mono     = .false.
   character(max_file_path_len) mesh_file_path
 
   namelist /tmcore/       &
@@ -51,7 +50,7 @@ module params_mod
     apvm_weight         , &
     clust_weight        , &
     adv_order           , &
-    adv_monotonic       , &
+    adv_mono            , &
     mesh_file_path
 
   character(max_name_len) case_name

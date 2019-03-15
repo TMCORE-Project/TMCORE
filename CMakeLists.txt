@@ -29,6 +29,18 @@ else ()
   endif ()
 endif ()
 
+if (DEFINED ENV{LAPACK_ROOT})
+  include_directories("$ENV{LAPACK_ROOT}")
+  link_directories("$ENV{LAPACK_ROOT}")
+  set(LAPACK_LINKER_FLAGS "-llapack")
+else ()
+  find_package(LAPACK REQUIRED)
+  if (NOT LAPACK_FOUND)
+    message(DEBUG "Unable to find LAPACK library, use internal routines.")
+    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -DNOLAPACK")
+  endif ()
+endif ()
+
 add_subdirectory(lib/container)
 include_directories(${CMAKE_BINARY_DIR}/fortran_container)
 
@@ -38,18 +50,22 @@ set(source_files
   src/utils/const_mod.F90
   src/utils/string_mod.F90
   src/utils/time_mod.F90
+  src/utils/timer_mod.F90
   src/utils/log_mod.F90
   src/utils/io_mod.F90
   src/utils/history_mod.F90
   src/utils/sort_mod.F90
   src/utils/sphere_geometry_mod.F90
+  src/utils/math_mod.F90
+  src/utils/poly_fit_mod.F90
   src/core/params_mod.F90
   src/core/mesh_mod.F90
   src/core/static_mod.F90
   src/core/state_mod.F90
   src/core/tend_mod.F90
   src/core/operators_mod.F90
-  src/core/advection_mod.F90
+  src/core/adv_schemes/adv_scheme_sg11_mod.F90
+  src/core/adv_schemes/adv_scheme_mod.F90
   src/core/diag_mod.F90
   src/core/time_scheme_mod.F90
   src/core/tmcore_adv_mod.F90
@@ -66,7 +82,7 @@ set(source_files
 set(CMAKE_Fortran_MODULE_DIRECTORY "${CMAKE_BINARY_DIR}/.mods")
 
 add_library(tmcore ${source_files})
-target_link_libraries(tmcore fortran_datetime fortran_container netcdf netcdff)
+target_link_libraries(tmcore fortran_datetime fortran_container netcdf netcdff ${LAPACK_LIBRARIES})
 
 add_executable(test_tmcore_swm.exe src/core/test_tmcore_swm.F90)
 target_link_libraries(test_tmcore_swm.exe tmcore)

@@ -4,8 +4,8 @@ module tmcore_adv_mod
   use log_mod
   use mesh_mod
   use operators_mod
-  use advection_mod
   use time_mod, old => old_time_idx, new => new_time_idx
+  use timer_mod
   use static_mod
   use state_mod
   use tend_mod
@@ -13,6 +13,7 @@ module tmcore_adv_mod
   use diag_mod
   use history_mod
   use time_scheme_mod
+  use adv_scheme_mod
 
   implicit none
 
@@ -36,8 +37,9 @@ contains
     call params_parse_namelist(namelist_file_path)
     call log_init()
     call time_init()
+    call timer_init()
     call mesh_init()
-    call advecion_init()
+    call adv_scheme_init()
     call static_init()
     call state_init()
     call tend_init()
@@ -48,6 +50,7 @@ contains
 
   subroutine tmcore_adv_final()
 
+    call adv_scheme_final()
     call mesh_final()
     call static_final()
     call state_final()
@@ -76,8 +79,7 @@ contains
     type(state_type), intent(inout) :: state
     type(tend_type),  intent(inout) :: tend
 
-    call scalar_c2e_interp_operator(state%cell%gd, state%edge%gd, adv_order    , state%edge%u, adv_monotonic)
-    call calc_gd_tend_on_cell      (state%edge%u , state%edge%gd, tend %cell%gd)
+    call adv_scheme_run(state%cell%gd, state%edge%u, state%edge%gd, tend%cell%gd)
 
   end subroutine spatial_operators
 
@@ -92,21 +94,6 @@ contains
     call update_wind_ptr(time_elapsed_seconds() + dt, new_state)
 
   end subroutine update_state
-
-  subroutine calc_gd_tend_on_cell(u_edge, gd_edge, gd_tend_cell)
-
-    real(real_kind), intent(in)  :: u_edge      (:)
-    real(real_kind), intent(in)  :: gd_edge     (:)
-    real(real_kind), intent(out) :: gd_tend_cell(:)
-
-    real(real_kind) flux(lbound(u_edge, 1):ubound(u_edge, 1))
-    integer iCell
-
-    flux = u_edge * gd_edge
-
-    call div_operator(flux, gd_tend_cell)
-
-  end subroutine calc_gd_tend_on_cell
 
   subroutine calc_total_mass(state)
 

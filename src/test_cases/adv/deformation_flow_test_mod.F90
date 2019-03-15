@@ -39,8 +39,8 @@ contains
       b = 0.1d0 * g
       c = 1.0d0 * g
       do iCell = lbound(state(1)%cell%gd, 1), ubound(state(1)%cell%gd, 1)
-        r1 = distance(lon1, lat1, lonCell(iCell), latCell(iCell))
-        r2 = distance(lon2, lat2, lonCell(iCell), latCell(iCell))
+        r1 = calc_distance(lon1, lat1, lonCell(iCell), latCell(iCell))
+        r2 = calc_distance(lon2, lat2, lonCell(iCell), latCell(iCell))
         if ((r1 <= r .and. abs(lonCell(iCell) - lon1) >= r / 6.0d0 / radius) .or. (r2 <= r .and. abs(lonCell(iCell) - lon2) >= r / 6.0d0 / radius)) then
           state(1)%cell%gd(iCell) = c
         else if (r1 <= r .and. abs(lonCell(iCell) - lon1) < r / 6.0d0 / radius .and. latCell(iCell) - lat1 < -5.0d0 / 12.0d0 * r / radius) then
