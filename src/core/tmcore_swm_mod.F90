@@ -136,19 +136,32 @@ contains
     real(real_kind) E          (lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
     real(real_kind) dEdx       (lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
     
-    integer iCell1,iCell2
+    real(real_kind) d3fdx3_cell1, &
+                    d3fdx3_cell2
     
-    iCell1 = cellsOnEdge(1,iEdge)
-    iCell2 = cellsOnEdge(2,iEdge)
-        
+    integer, parameter :: order3 = 3
+    
+    integer iCell1, iCell2, iEdge
+      
     E = ke_cell + gd_cell - ghs_cell
     
     iap_gd_edge = sqrt(gd_edge)
     
-    d3fdx3_cell1 = sum( derivOnCell(1:nFitCellsOnCell(3,iCell1)-1,1,3,iEdge) * (E(fitCellsOnCell(1:nFitCellsOnCell(3,iCell1)-1,3,iCell1)) - E(iCell1)) )
-    d3fdx3_cell2 = sum( derivOnCell(1:nFitCellsOnCell(3,iCell2)-1,2,3,iEdge) * (E(fitCellsOnCell(1:nFitCellsOnCell(3,iCell2)-1,3,iCell2)) - E(iCell2)) )
+    dEdx  = ( E(cellsOnEdge(2,:)) -  E(cellsOnEdge(1,:))) / dcEdge
     
-    dEdx  = ( E(cellsOnEdge(2,:)) -  E(cellsOnEdge(1,:))) / dcEdge - ( d3fdx3_cell1 + d3fdx3_cell2 ) * dcEdge**2 / 48.d0
+    if (flux_4th_order_correct)then
+      do iEdge = lbound(u_tend_edge, 1), ubound(u_tend_edge, 1)
+        iCell1 = cellsOnEdge(1,iEdge)
+        iCell2 = cellsOnEdge(2,iEdge)
+        
+        ! Compute 4th order derives
+        d3fdx3_cell1 = sum( derivOnCell(1:nFitCells(order3,iCell1)-1,1,order3,iEdge) * (E(fitCells(1:nFitCells(order3,iCell1)-1,order3,iCell1)) - E(iCell1)) )
+        d3fdx3_cell2 = sum( derivOnCell(1:nFitCells(order3,iCell2)-1,2,order3,iEdge) * (E(fitCells(1:nFitCells(order3,iCell2)-1,order3,iCell2)) - E(iCell2)) )
+      
+        dEdx(iEdge)  = dEdx(iEdge)  - ( d3fdx3_cell1 + d3fdx3_cell2 ) * dcEdge(iEdge)**2 / 48.d0
+        
+      end do     ! do iEdge
+    end if
 
     u_tend_edge = pv_flx_edge - dEdx
 

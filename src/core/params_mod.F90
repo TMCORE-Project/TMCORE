@@ -35,22 +35,24 @@ module params_mod
   integer time_scheme   ! Time integration scheme
   integer energy_scheme ! Total energy conservation scheme, 1: tau_n = 2.d0*(phi,F)/(phi,phi); 2: tau_n = beta_n*dt
   integer pv_scheme     ! 1: APVM; 2: CLUST 4: conservative_APVM
-  logical :: conserve_energy      = .true.
+  logical         :: conserve_energy      = .true.
+  logical         :: flux_4th_order_correct = .false.
   real(real_kind) :: apvm_weight  = 0.5
   real(real_kind) :: clust_weight = 0.25
   integer         :: adv_order    = 2
   logical         :: adv_mono     = .false.
   character(max_file_path_len) mesh_file_path
 
-  namelist /tmcore/       &
-    time_scheme         , &
-    energy_scheme       , &
-    pv_scheme           , &
-    conserve_energy     , &
-    apvm_weight         , &
-    clust_weight        , &
-    adv_order           , &
-    adv_mono            , &
+  namelist /tmcore/         &
+    time_scheme           , &
+    energy_scheme         , &
+    pv_scheme             , &
+    conserve_energy       , &
+    flux_4th_order_correct, &
+    apvm_weight           , &
+    clust_weight          , &
+    adv_order             , &
+    adv_mono              , &
     mesh_file_path
 
   character(max_name_len) case_name
