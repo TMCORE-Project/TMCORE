@@ -52,7 +52,6 @@ contains
   end subroutine poly_fit_final
 
   subroutine poly_fit_run()
-    implicit none
     
     real(real_kind) xc(0:maxFitCells)
     real(real_kind) yc(0:maxFitCells)
@@ -60,7 +59,7 @@ contains
     real(real_kind) xp(0:maxFitCells)  ! Projected coordinate x
     real(real_kind) yp(0:maxFitCells)  ! Projected coordinate y
     real(real_kind) theta(maxFitCells) ! Anticlockwise angle from the first line to other lines connecting cell center and neighbor cells
-    real(real_kind) d
+    real(real_kind) distance
     real(real_kind) P     (maxFitCells,maxFitCells)
     real(real_kind) B     (maxFitCells,maxFitCells)
     real(real_kind) W     (maxFitCells,maxFitCells)
@@ -121,11 +120,11 @@ contains
                                      [xc(1),yc(1),zc(1)], &
                                      [xc(i),yc(i),zc(i)])
         
-        d        = radius * calc_arc_length([xc(0),yc(0),zc(0)], &
+        distance = radius * calc_arc_length([xc(0),yc(0),zc(0)], &
                                             [xc(i),yc(i),zc(i)])
         
-        xp(i) = cos(theta(i)) * d
-        yp(i) = sin(theta(i)) * d
+        xp(i) = cos(theta(i)) * distance
+        yp(i) = sin(theta(i)) * distance
       end do
 
       ! Set matrices for least square fit.
@@ -148,15 +147,14 @@ contains
       PTWTW (1:n,1:m) = matmul(PT(1:n,1:m), WTW(1:m,1:m))
       PTWTWP(1:n,1:n) = matmul(PTWTW(1:n,1:m), P(1:m,1:n))
       call math_inv_matrix(n, PTWTWP(1:n,1:n), B(1:n,1:n))
-      !call lapack_inv_matrix(n, PTWTWP(1:n,1:n), B(1:n,1:n))
       B     (1:n,1:m) = matmul(B(1:n,1:n), PTWTW(1:n,1:m))
 
       ! Calculate second-order derivative weights.
       do i = 1, nEdgesOnCell(iCell)
         iEdge = edgesOnCell(i,iCell)
         k = merge(1, 2, iCell == cellsOnEdge(1,iEdge))
-        cos_theta     = cos(theta(i))
-        sin_theta     = sin(theta(i))
+        cos_theta = cos(theta(i))
+        sin_theta = sin(theta(i))
         do j = 1, nFitCellsOnCell(2,iCell) - 1
           d2fdx2  = 2.0d0 * B(3,j) * cos_theta**2
           d2fdxdy =         B(4,j) * cos_theta * sin_theta
@@ -181,11 +179,11 @@ contains
                                      [xc(1),yc(1),zc(1)], &
                                      [xc(i),yc(i),zc(i)])
         
-        d        = radius * calc_arc_length([xc(0),yc(0),zc(0)], &
+        distance = radius * calc_arc_length([xc(0),yc(0),zc(0)], &
                                             [xc(i),yc(i),zc(i)])
         
-        xp(i) = cos(theta(i)) * d
-        yp(i) = sin(theta(i)) * d
+        xp(i) = cos(theta(i)) * distance
+        yp(i) = sin(theta(i)) * distance
       end do
 
       ! Set matrices for least square fit.
@@ -195,24 +193,24 @@ contains
       W = 0.0d0 ! m x m
       B = 0.0d0 ! n x m
       do i = 1, m
-          P(i,1 ) = xp(i)
-          P(i,2 ) = yp(i)
-   
-          P(i,3 ) = xp(i)**2
-          P(i,4 ) = xp(i) * yp(i)
-          P(i,5 ) = yp(i)**2
-   
-          P(i,6 )  = xp(i)**3
-          P(i,7 )  = yp(i) * (xp(i)**2)
-          P(i,8 )  = xp(i) * (yp(i)**2)
-          P(i,9 ) = yp(i)**3
-   
-          P(i,10) = xp(i)**4
-          P(i,11) = yp(i) * (xp(i)**3)
-          P(i,12) = (xp(i)**2)*(yp(i)**2)
-          P(i,13) = xp(i) * (yp(i)**3)
-          P(i,14) = yp(i)**4
-          W(i,i ) = 1.0d0
+        P(i,1 ) = xp(i)
+        P(i,2 ) = yp(i)
+ 
+        P(i,3 ) = xp(i)**2
+        P(i,4 ) = xp(i) * yp(i)
+        P(i,5 ) = yp(i)**2
+ 
+        P(i,6 ) = xp(i)**3
+        P(i,7 ) = yp(i) * (xp(i)**2)
+        P(i,8 ) = xp(i) * (yp(i)**2)
+        P(i,9 ) = yp(i)**3
+ 
+        P(i,10) = xp(i)**4
+        P(i,11) = yp(i) * (xp(i)**3)
+        P(i,12) = (xp(i)**2)*(yp(i)**2)
+        P(i,13) = xp(i) * (yp(i)**3)
+        P(i,14) = yp(i)**4
+        W(i,i ) = 1.0d0
       end do
 
       WTW   (1:m,1:m) = matmul(transpose(W(1:m,1:m)), W(1:m,1:m))
@@ -220,15 +218,14 @@ contains
       PTWTW (1:n,1:m) = matmul(PT(1:n,1:m), WTW(1:m,1:m))
       PTWTWP(1:n,1:n) = matmul(PTWTW(1:n,1:m), P(1:m,1:n))
       call math_inv_matrix(n, PTWTWP(1:n,1:n), B(1:n,1:n))
-      !call lapack_inv_matrix(n, PTWTWP(1:n,1:n), B(1:n,1:n))
       B     (1:n,1:m) = matmul(B(1:n,1:n), PTWTW(1:n,1:m))
 
       ! Calculate second-order derivative weights.
       do i = 1, nEdgesOnCell(iCell)
         iEdge = edgesOnCell(i,iCell)
         k = merge(1, 2, iCell == cellsOnEdge(1,iEdge))
-        cos_theta     = cos(theta(i))
-        sin_theta     = sin(theta(i))
+        cos_theta   = cos(theta(i))
+        sin_theta   = sin(theta(i))
         do j = 1, nFitCellsOnCell(4,iCell) - 1
           d4fdx4    = 24.0d0 * B(10,j) *  cos_theta**4
           d4fdx3dy  =  6.0d0 * B(11,j) * (cos_theta**3) *  sin_theta

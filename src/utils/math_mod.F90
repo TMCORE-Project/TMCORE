@@ -7,9 +7,11 @@ module math_mod
   
   public cross_product
   public math_inv_matrix
+#ifndef NOLAPACK
   public lapack_inv_matrix
+#endif
 
-  contains
+contains
 
   function cross_product(x, y) result(res)
 
