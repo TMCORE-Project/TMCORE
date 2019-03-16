@@ -139,8 +139,6 @@ contains
     real(real_kind) d3fdx3_cell1, &
                     d3fdx3_cell2
     
-    integer, parameter :: order3 = 3
-    
     integer iCell1, iCell2, iEdge
       
     E = ke_cell + gd_cell - ghs_cell
@@ -155,10 +153,10 @@ contains
         iCell2 = cellsOnEdge(2,iEdge)
         
         ! Compute 4th order derives
-        d3fdx3_cell1 = sum( derivOnCell(1:nFitCells(order3,iCell1)-1,1,order3,iEdge) * (E(fitCells(1:nFitCells(order3,iCell1)-1,order3,iCell1)) - E(iCell1)) )
-        d3fdx3_cell2 = sum( derivOnCell(1:nFitCells(order3,iCell2)-1,2,order3,iEdge) * (E(fitCells(1:nFitCells(order3,iCell2)-1,order3,iCell2)) - E(iCell2)) )
+        d3fdx3_cell1 = sum( deriv3OnCell(1:nFit3Cells(iCell1)-1,1,iEdge) * (E(fit3Cells(1:nFit3Cells(iCell1)-1,iCell1)) - E(iCell1)) )
+        d3fdx3_cell2 = sum( deriv3OnCell(1:nFit3Cells(iCell2)-1,2,iEdge) * (E(fit3Cells(1:nFit3Cells(iCell2)-1,iCell2)) - E(iCell2)) )
       
-        dEdx(iEdge)  = dEdx(iEdge)  - ( d3fdx3_cell1 + d3fdx3_cell2 ) * dcEdge(iEdge)**2 / 48.d0
+        dEdx(iEdge)  = dEdx(iEdge) - ( d3fdx3_cell1 + d3fdx3_cell2 ) * dcEdge(iEdge)**2 / 48.d0
         
       end do     ! do iEdge
     end if

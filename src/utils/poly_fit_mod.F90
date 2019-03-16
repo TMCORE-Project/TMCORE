@@ -11,57 +11,109 @@ module poly_fit_mod
 
   public poly_fit_init
   public poly_fit_final
-  public nFitCells
-  public fitCells
-  public derivOnCell
+  public nFit2Cells
+  public nFit3Cells
+  public nFit4Cells
+  public fit2Cells
+  public fit3Cells
+  public fit4Cells
+  public deriv2OnCell
+  public deriv3OnCell
+  public deriv4OnCell
 
-  integer, parameter :: maxFitCells = 20
-  integer, parameter :: maxFitOrder = 4
-  integer, parameter :: order2      = 2
-  integer, parameter :: order3      = 3
-  integer, parameter :: order4      = 4
+  integer, parameter :: maxFitCells = 25
 
-  integer, allocatable :: nFitCells   (:,:)
-  integer, allocatable :: nFitVertices(:,:)
-  integer, allocatable :: fitCells    (:,:,:)
-  integer, allocatable :: fitVertices (:,:,:)
+  integer, allocatable :: nFit2Cells   (:)
+  integer, allocatable :: nFit3Cells   (:)
+  integer, allocatable :: nFit4Cells   (:)
+  
+  integer, allocatable :: nFit2Vertices(:)
+  integer, allocatable :: nFit3Vertices(:)
+  integer, allocatable :: nFit4Vertices(:)
+  
+  integer, allocatable :: fit2Cells    (:,:)
+  integer, allocatable :: fit3Cells    (:,:)
+  integer, allocatable :: fit4Cells    (:,:)
+  
+  integer, allocatable :: fit2Vertices (:,:)
+  integer, allocatable :: fit3Vertices (:,:)
+  integer, allocatable :: fit4Vertices (:,:)
 
-  real(real_kind), allocatable :: derivOnCell  (:,:,:,:)
-  real(real_kind), allocatable :: derivOnVertex(:,:,:,:)
+  real(real_kind), allocatable :: deriv2OnCell  (:,:,:)
+  real(real_kind), allocatable :: deriv3OnCell  (:,:,:)
+  real(real_kind), allocatable :: deriv4OnCell  (:,:,:)
+  
+  real(real_kind), allocatable :: deriv2OnVertex(:,:,:)
+  real(real_kind), allocatable :: deriv3OnVertex(:,:,:)
+  real(real_kind), allocatable :: deriv4OnVertex(:,:,:)
 
 contains
 
   subroutine poly_fit_init()
 
-    if (.not. allocated(nFitCells     )) allocate(nFitCells    (                2:maxFitOrder,nCells   ))
-    if (.not. allocated(nFitVertices  )) allocate(nFitVertices (                2:maxFitOrder,nVertices))
-    if (.not. allocated(fitCells      )) allocate(fitCells     (0:maxFitCells,  2:maxFitOrder,nCells   ))
-    if (.not. allocated(fitVertices   )) allocate(fitVertices  (0:maxFitCells,  2:maxFitOrder,nVertices))
-    if (.not. allocated(derivOnCell   )) allocate(derivOnCell  (0:maxFitCells,2,2:maxFitOrder,nEdges   ))
-    if (.not. allocated(derivOnVertex )) allocate(derivOnVertex(0:maxFitCells,2,2:maxFitOrder,nEdges   ))
+    if (.not. allocated(nFit2Cells     )) allocate(nFit2Cells    (nCells   ))
+    if (.not. allocated(nFit3Cells     )) allocate(nFit3Cells    (nCells   ))
+    if (.not. allocated(nFit4Cells     )) allocate(nFit4Cells    (nCells   ))
+    
+    if (.not. allocated(nFit2Vertices  )) allocate(nFit2Vertices (nVertices))
+    if (.not. allocated(nFit3Vertices  )) allocate(nFit3Vertices (nVertices))
+    if (.not. allocated(nFit4Vertices  )) allocate(nFit4Vertices (nVertices))
+    
+    if (.not. allocated(fit2Cells      )) allocate(fit2Cells     (0:maxFitCells,nCells   ))
+    if (.not. allocated(fit3Cells      )) allocate(fit3Cells     (0:maxFitCells,nCells   ))
+    if (.not. allocated(fit4Cells      )) allocate(fit4Cells     (0:maxFitCells,nCells   ))
+    
+    if (.not. allocated(fit2Vertices   )) allocate(fit2Vertices  (0:maxFitCells,nVertices))
+    if (.not. allocated(fit3Vertices   )) allocate(fit3Vertices  (0:maxFitCells,nVertices))
+    if (.not. allocated(fit4Vertices   )) allocate(fit4Vertices  (0:maxFitCells,nVertices))
+    
+    if (.not. allocated(deriv2OnCell   )) allocate(deriv2OnCell  (0:maxFitCells,2,nEdges ))
+    if (.not. allocated(deriv3OnCell   )) allocate(deriv3OnCell  (0:maxFitCells,2,nEdges ))
+    if (.not. allocated(deriv4OnCell   )) allocate(deriv4OnCell  (0:maxFitCells,2,nEdges ))
+    
+    if (.not. allocated(deriv2OnVertex )) allocate(deriv2OnVertex(0:maxFitCells,2,nEdges ))
+    if (.not. allocated(deriv3OnVertex )) allocate(deriv3OnVertex(0:maxFitCells,2,nEdges ))
+    if (.not. allocated(deriv4OnVertex )) allocate(deriv4OnVertex(0:maxFitCells,2,nEdges ))
     call poly_fit_run()
 
   end subroutine poly_fit_init
 
   subroutine poly_fit_final()
 
-    if (allocated(nFitCells     )) deallocate(nFitCells    )
-    if (allocated(nFitVertices  )) deallocate(nFitVertices )
-    if (allocated(fitCells      )) deallocate(fitCells     )
-    if (allocated(fitVertices   )) deallocate(fitVertices  )
-    if (allocated(derivOnCell   )) deallocate(derivOnCell  )
-    if (allocated(derivOnVertex )) deallocate(derivOnVertex)
+    if (allocated(nFit2Cells     )) deallocate(nFit2Cells    )
+    if (allocated(nFit3Cells     )) deallocate(nFit3Cells    )
+    if (allocated(nFit4Cells     )) deallocate(nFit4Cells    )
+    
+    if (allocated(nFit2Vertices  )) deallocate(nFit2Vertices )
+    if (allocated(nFit3Vertices  )) deallocate(nFit3Vertices )
+    if (allocated(nFit4Vertices  )) deallocate(nFit4Vertices )
+    
+    if (allocated(fit2Cells      )) deallocate(fit2Cells     )
+    if (allocated(fit3Cells      )) deallocate(fit3Cells     )
+    if (allocated(fit4Cells      )) deallocate(fit4Cells     )
+    
+    if (allocated(fit2Vertices   )) deallocate(fit2Vertices  )
+    if (allocated(fit3Vertices   )) deallocate(fit3Vertices  )
+    if (allocated(fit4Vertices   )) deallocate(fit4Vertices  )
+    
+    if (allocated(deriv2OnCell   )) deallocate(deriv2OnCell  )
+    if (allocated(deriv3OnCell   )) deallocate(deriv3OnCell  )
+    if (allocated(deriv4OnCell   )) deallocate(deriv4OnCell  )
+    
+    if (allocated(deriv2OnVertex )) deallocate(deriv2OnVertex)
+    if (allocated(deriv3OnVertex )) deallocate(deriv3OnVertex)
+    if (allocated(deriv4OnVertex )) deallocate(deriv4OnVertex)
 
   end subroutine poly_fit_final
 
   subroutine poly_fit_run()
     
-    real(real_kind) xc(0:maxFitCells)
-    real(real_kind) yc(0:maxFitCells)
-    real(real_kind) zc(0:maxFitCells)
-    real(real_kind) xp(0:maxFitCells)  ! Projected coordinate x
-    real(real_kind) yp(0:maxFitCells)  ! Projected coordinate y
-    real(real_kind) theta(maxFitCells) ! Anticlockwise angle from the first line to other lines connecting cell center and neighbor cells
+    real(real_kind) xc   (0:maxFitCells)
+    real(real_kind) yc   (0:maxFitCells)
+    real(real_kind) zc   (0:maxFitCells)
+    real(real_kind) xp   (0:maxFitCells)  ! Projected coordinate x
+    real(real_kind) yp   (0:maxFitCells)  ! Projected coordinate y
+    real(real_kind) theta(  maxFitCells) ! Anticlockwise angle from the first line to other lines connecting cell center and neighbor cells
     real(real_kind) d
     real(real_kind) P     (maxFitCells,maxFitCells)
     real(real_kind) B     (maxFitCells,maxFitCells)
@@ -82,46 +134,51 @@ contains
     ! Fitting on cells
     do iCell = 1, nCells
       ! Record cell indices for fitting.
-      fitCells(0,order2:order4,iCell) = iCell
+      fit2Cells(0,iCell) = iCell
+      fit4Cells(0,iCell) = iCell
       ! First halo
       do i = 1, nEdgesOnCell(iCell)
-        fitCells(i,order2:order4,iCell) = cellsOnCell(i,iCell)
+        fit2Cells(i,iCell) = cellsOnCell(i,iCell)
+        fit4Cells(i,iCell) = cellsOnCell(i,iCell)
       end do
-      nFitCells(order2:order4,iCell) = nEdgesOnCell(iCell) + 1
+      nFit2Cells(iCell) = nEdgesOnCell(iCell) + 1
+      nFit4Cells(iCell) = nEdgesOnCell(iCell) + 1
       ! Second halo
       do i = 1, nEdgesOnCell(iCell)
-        do j = 1, nEdgesOnCell(fitCells(i,order4,iCell))
-          iNgbCell = cellsOnCell(j,fitCells(i,order4,iCell))
+        do j = 1, nEdgesOnCell(fit4Cells(i,iCell))
+          iNgbCell = cellsOnCell(j,fit4Cells(i,iCell))
           ! Check if cell has been recorded.
           recorded = .false.
-          do k = 0, nFitCells(order4,iCell) - 1
-            iRecordedNgbCell = fitCells(k,4,iCell)
+          do k = 0, nFit4Cells(iCell) - 1
+            iRecordedNgbCell = fit4Cells(k,iCell)
             if (iNgbCell == iRecordedNgbCell) then
               recorded = .true.
               exit
             end if
           end do
           if (.not. recorded) then
-            fitCells(nFitCells(order4,iCell),3:4,iCell) = iNgbCell
-            nFitCells(order3:order4,iCell) = nFitCells(order3:order4,iCell) + 1
+            fit4Cells(nFit4Cells(iCell),iCell) = iNgbCell
+            nFit4Cells(iCell) = nFit4Cells(iCell) + 1
           end if
         end do
       end do
+      fit3Cells (:,iCell) = fit4Cells (:,iCell)
+      nFit3Cells(iCell  ) = nFit4Cells(iCell  )
 
       !!!!!!!!!!!!!!!!!!!!
       ! Second-order fit !
       !!!!!!!!!!!!!!!!!!!!
       ! Get Cartesian coordinates of fit cells (remove Earth radius).
-      do i = 0, nFitCells(order2,iCell) - 1
-        xc(i) = xCell(fitCells(i,order2,iCell)) / radius
-        yc(i) = yCell(fitCells(i,order2,iCell)) / radius
-        zc(i) = zCell(fitCells(i,order2,iCell)) / radius
+      do i = 0, nFit2Cells(iCell) - 1
+        xc(i) = xCell(fit2Cells(i,iCell)) / radius
+        yc(i) = yCell(fit2Cells(i,iCell)) / radius
+        zc(i) = zCell(fit2Cells(i,iCell)) / radius
       end do
 
       ! Calculate angles and projected coordinates.
       xp(0) = 0.0d0
       yp(0) = 0.0d0
-      do i = 1, nFitCells(order2,iCell) - 1
+      do i = 1, nFit2Cells(iCell) - 1
         theta(i) = calc_sphere_angle([xc(0),yc(0),zc(0)], &
                                      [xc(1),yc(1),zc(1)], &
                                      [xc(i),yc(i),zc(i)])
@@ -134,7 +191,7 @@ contains
       end do
 
       ! Set matrices for least square fit.
-      m = nFitCells(order2,iCell) - 1
+      m = nFit2Cells(iCell) - 1
       n = 5
       P = 0.0d0 ! m x n
       W = 0.0d0 ! m x m
@@ -162,12 +219,12 @@ contains
         k = merge(1, 2, iCell == cellsOnEdge(1,iEdge))
         cos_theta     = cos(theta(i))
         sin_theta     = sin(theta(i))
-        do j = 1, nFitCells(order2,iCell) - 1
+        do j = 1, nFit2Cells(iCell) - 1
           d2fdx2  = 2.0d0 * B(3,j) * cos_theta**2
           d2fdxdy =         B(4,j) * cos_theta * sin_theta
           d2fdy2  = 2.0d0 * B(5,j) * sin_theta**2
           
-          derivOnCell(j,k,order2,iEdge) = d2fdx2 + 2.0d0 * d2fdxdy + d2fdy2
+          deriv2OnCell(j,k,iEdge) = d2fdx2 + 2.0d0 * d2fdxdy + d2fdy2
         end do
       end do
       
@@ -175,16 +232,16 @@ contains
       ! Third-order fit !
       !!!!!!!!!!!!!!!!!!!
       ! Get Cartesian coordinates of fit cells (remove Earth radius).
-      do i = 0, nFitCells(order3,iCell) - 1
-        xc(i) = xCell(fitCells(i,order3,iCell)) / radius
-        yc(i) = yCell(fitCells(i,order3,iCell)) / radius
-        zc(i) = zCell(fitCells(i,order3,iCell)) / radius
+      do i = 0, nFit3Cells(iCell) - 1
+        xc(i) = xCell(fit3Cells(i,iCell)) / radius
+        yc(i) = yCell(fit3Cells(i,iCell)) / radius
+        zc(i) = zCell(fit3Cells(i,iCell)) / radius
       end do
 
       ! Calculate angles and projected coordinates.
       xp(0) = 0.0d0
       yp(0) = 0.0d0
-      do i = 1, nFitCells(order3,iCell) - 1
+      do i = 1, nFit3Cells(iCell) - 1
         theta(i) = calc_sphere_angle([xc(0),yc(0),zc(0)], &
                                      [xc(1),yc(1),zc(1)], &
                                      [xc(i),yc(i),zc(i)])
@@ -197,7 +254,7 @@ contains
       end do
 
       ! Set matrices for least square fit.
-      m = nFitCells(order3,iCell) - 1
+      m = nFit3Cells(iCell) - 1
       n = 9
       P = 0.0d0 ! m x n
       W = 0.0d0 ! m x m
@@ -232,13 +289,13 @@ contains
         k = merge(1, 2, iCell == cellsOnEdge(1,iEdge))
         cos_theta     = cos(theta(i))
         sin_theta     = sin(theta(i))
-        do j = 1, nFitCells(order3,iCell) - 1
+        do j = 1, nFit3Cells(iCell) - 1
           d3fdx3   = 6.0d0 * B(6,j) *  cos_theta**3
           d3fdx2dy = 2.0d0 * B(7,j) * (cos_theta**2) *  sin_theta
           d3fdx2dy = 2.0d0 * B(8,j) *  cos_theta     * (sin_theta)**2
           d3fdy3   = 6.0d0 * B(9,j) *  sin_theta**3
           
-          derivOnCell(j,k,order3,iEdge) = d3fdx3 + 3.0d0 * d3fdx2dy + 3.0d0 * d3fdxdy2 + d3fdy3
+          deriv3OnCell(j,k,iEdge) = d3fdx3 + 3.0d0 * d3fdx2dy + 3.0d0 * d3fdxdy2 + d3fdy3
         end do
       end do
 
@@ -246,16 +303,16 @@ contains
       ! Fourth-order fit !
       !!!!!!!!!!!!!!!!!!!!
       ! Get Cartesian coordinates of fit cells (remove Earth radius).
-      do i = 0, nFitCells(order4,iCell) - 1
-        xc(i) = xCell(fitCells(i,order4,iCell)) / radius
-        yc(i) = yCell(fitCells(i,order4,iCell)) / radius
-        zc(i) = zCell(fitCells(i,order4,iCell)) / radius
+      do i = 0, nFit4Cells(iCell) - 1
+        xc(i) = xCell(fit4Cells(i,iCell)) / radius
+        yc(i) = yCell(fit4Cells(i,iCell)) / radius
+        zc(i) = zCell(fit4Cells(i,iCell)) / radius
       end do
 
       ! Calculate angles and projected coordinates.
       xp(0) = 0.0d0
       yp(0) = 0.0d0
-      do i = 1, nFitCells(order4,iCell) - 1
+      do i = 1, nFit4Cells(iCell) - 1
         theta(i) = calc_sphere_angle([xc(0),yc(0),zc(0)], &
                                      [xc(1),yc(1),zc(1)], &
                                      [xc(i),yc(i),zc(i)])
@@ -268,7 +325,7 @@ contains
       end do
 
       ! Set matrices for least square fit.
-      m = nFitCells(order4,iCell) - 1
+      m = nFit4Cells(iCell) - 1
       n = 14
       P = 0.0d0 ! m x n
       W = 0.0d0 ! m x m
@@ -308,14 +365,14 @@ contains
         k = merge(1, 2, iCell == cellsOnEdge(1,iEdge))
         cos_theta     = cos(theta(i))
         sin_theta     = sin(theta(i))
-        do j = 1, nFitCells(order4,iCell) - 1
+        do j = 1, nFit4Cells(iCell) - 1
           d4fdx4    = 24.0d0 * B(10,j) *  cos_theta**4
           d4fdx3dy  =  6.0d0 * B(11,j) * (cos_theta**3) *  sin_theta
           d4fdx2dy2 =  4.0d0 * B(12,j) * (cos_theta**2) * (sin_theta**2)
           d4fdxdy3  =  6.0d0 * B(13,j) *  cos_theta     * (sin_theta**3)
           d4fdy4    = 24.0d0 * B(14,j) *  sin_theta**4
           
-          derivOnCell(j,k,order4,iEdge) = d4fdx4 + 4.0d0 * d4fdx3dy + 6.0d0 * d4fdx2dy2 + 4.0d0 * d4fdxdy3 + d4fdy4
+          deriv4OnCell(j,k,iEdge) = d4fdx4 + 4.0d0 * d4fdx3dy + 6.0d0 * d4fdx2dy2 + 4.0d0 * d4fdxdy3 + d4fdy4
         end do
       end do
     end do
