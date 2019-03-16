@@ -15,7 +15,7 @@ module poly_fit_mod
   public fitCellsOnCell
   public derivOnCell
 
-  integer, parameter :: maxFitCells = 25
+  integer, parameter :: maxFitCells = 20
   integer, parameter :: maxFitOrder = 4
 
   integer, allocatable :: nFitCellsOnCell     (:,:)

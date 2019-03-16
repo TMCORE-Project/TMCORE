@@ -13,16 +13,21 @@ module timer_mod
   public timer_duration
 
   type timer_type
-    real(8) start_time
-    real(8) end_time
+    integer :: start_clock = 0.0d0
+    integer :: end_clock   = 0.0d0
+    real(8) :: duration      = 0.0d0
+    integer :: count      = 0.0d0
   end type timer_type
 
+  real(8) count_rate
   type(hash_table_type) timers
 
 contains
 
   subroutine timer_init()
 
+    call system_clock(count_rate=count_rate)
+    count_rate = count_rate / 1.0d6
     timers = hash_table()
 
   end subroutine timer_init
@@ -31,12 +36,22 @@ contains
 
     character(*), intent(in) :: name
 
-    type(timer_type) timer
+    type(timer_type), pointer :: timer
 
-    call cpu_time(timer%start_time)
-
-    print *, timer%start_time
-    call timers%insert(name, timer)
+    if (timers%hashed(name)) then
+      select type (value => timers%value(name))
+      type is (timer_type)
+        timer => value
+        timer%duration = timer%duration + (timer%end_clock - timer%start_clock) / count_rate
+        timer%count = timer%count + 1
+        call system_clock(timer%start_clock)
+      end select
+    else
+      allocate(timer)
+      timer%count = timer%count + 1
+      call system_clock(timer%start_clock)
+      call timers%insert(name, timer)
+    end if
 
   end subroutine timer_start
 
@@ -47,7 +62,9 @@ contains
     type(timer_type), pointer :: timer
 
     timer => get_timer(name)
-    call cpu_time(timer%end_time)
+    call system_clock(timer%end_clock)
+
+    timer%duration = timer%duration + (timer%end_clock - timer%start_clock) / count_rate
 
   end subroutine timer_end
 
@@ -55,12 +72,23 @@ contains
 
     character(*), intent(in) :: name
 
-    type(timer_type) timer
+    type(timer_type), pointer :: timer
 
-    timer = get_timer(name)
-    res = timer%end_time - timer%start_time
+    timer => get_timer(name)
+    res = timer%duration
 
   end function timer_duration
+
+  real(8) function timer_averaged_duration(name) result(res)
+
+    character(*), intent(in) :: name
+
+    type(timer_type), pointer :: timer
+
+    timer => get_timer(name)
+    res = timer%duration / timer%count
+
+  end function timer_averaged_duration
 
   function get_timer(name) result(res)
 
