@@ -272,7 +272,7 @@ module linearized_rossby_wave_test_mod
              vTilde   (size(latEdge)) ,&
              hTilde   (size(latCell)) ,&
              blankCell(size(latCell)) ,&
-             blankEdge(size(latEdge)) ,&
+             blankEdge(size(latEdge))  &
             )
     
     call getPhaseSpeed(C,waveFlag)

@@ -2,6 +2,7 @@ module mesh_mod
 
   use const_mod
   use params_mod
+  use log_mod
 
   implicit none
 
@@ -71,8 +72,13 @@ contains
 
     integer ncid, ierr
     integer dimid, varid
-
     integer iCell, iEdge, iVertex, i
+    logical file_exist
+
+    inquire(file=mesh_file_path, exist=file_exist)
+    if (.not. file_exist) then
+      call log_error('Mesh file ' // trim(mesh_file_path) // ' does not exist!')
+    end if
 
     ierr = nf90_open(mesh_file_path, nf90_nowrite, ncid)
 
