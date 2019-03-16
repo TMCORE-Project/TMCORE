@@ -14,7 +14,7 @@ conserve_energy = .false.
 time_scheme     = 2
 pv_scheme       = 1
 apvm_weight     = 0.5
-adv_order       = 3
+adv_order       = 5
 adv_monotonic   = .true.
 mesh_file_path  = './x1.40962.grid.nc'
 /

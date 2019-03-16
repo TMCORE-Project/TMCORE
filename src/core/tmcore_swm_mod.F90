@@ -12,6 +12,7 @@ module tmcore_swm_mod
   use history_mod
   use time_scheme_mod
   use adv_scheme_mod
+  use poly_fit_mod
 
   implicit none
 
@@ -131,15 +132,25 @@ contains
     real(real_kind), intent(out) :: iap_u_tend_edge(:)
 
     real(real_kind) iap_gd_edge(lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
-    real(real_kind) dkedx      (lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
-    real(real_kind) dghdx      (lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
-
+    
+    real(real_kind) E          (lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
+    real(real_kind) dEdx       (lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
+    
+    integer iCell1,iCell2
+    
+    iCell1 = cellsOnEdge(1,iEdge)
+    iCell2 = cellsOnEdge(2,iEdge)
+        
+    E = ke_cell + gd_cell - ghs_cell
+    
     iap_gd_edge = sqrt(gd_edge)
-    dkedx = ( ke_cell(cellsOnEdge(2,:)) -  ke_cell(cellsOnEdge(1,:))) / dcEdge
-    dghdx = ( gd_cell(cellsOnEdge(2,:)) -  gd_cell(cellsOnEdge(1,:)) + &
-             ghs_cell(cellsOnEdge(2,:)) - ghs_cell(cellsOnEdge(1,:))) / dcEdge
+    
+    d3fdx3_cell1 = sum( derivOnCell(1:nFitCellsOnCell(3,iCell1)-1,1,3,iEdge) * (E(fitCellsOnCell(1:nFitCellsOnCell(3,iCell1)-1,3,iCell1)) - E(iCell1)) )
+    d3fdx3_cell2 = sum( derivOnCell(1:nFitCellsOnCell(3,iCell2)-1,2,3,iEdge) * (E(fitCellsOnCell(1:nFitCellsOnCell(3,iCell2)-1,3,iCell2)) - E(iCell2)) )
+    
+    dEdx  = ( E(cellsOnEdge(2,:)) -  E(cellsOnEdge(1,:))) / dcEdge - ( d3fdx3_cell1 + d3fdx3_cell2 ) * dcEdge**2 / 48.d0
 
-    u_tend_edge = pv_flx_edge - dkedx - dghdx
+    u_tend_edge = pv_flx_edge - dEdx
 
     iap_u_tend_edge = iap_gd_edge * u_tend_edge + 0.5d0 * u_edge / iap_gd_edge * gd_tend_edge
 
