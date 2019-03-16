@@ -2,10 +2,16 @@ cmake_minimum_required(VERSION 3.0.0 FATAL_ERROR)
 
 project(tmcore LANGUAGES Fortran)
 
-set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -Ofast -floop-parallelize-all -ftree-parallelize-loops=8 -ffree-line-length-none")
-
-if (CMAKE_BUILD_TYPE MATCHES DEBUG)
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -g -gdwarf -Og -fbacktrace -fcheck=all")
+if (CMAKE_Fortran_COMPILER_ID MATCHES Intel)
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -Ofast")
+  if (CMAKE_BUILD_TYPE MATCHES DEBUG)
+    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -g -gdwarf -Og -traceback -check all")
+  endif ()
+elseif (CMAKE_Fortran_COMPILER_ID MATCHES GNU)
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -Ofast -floop-parallelize-all -ftree-parallelize-loops=8 -ffree-line-length-none")
+  if (CMAKE_BUILD_TYPE MATCHES DEBUG)
+    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -g -gdwarf -Og -fbacktrace -fcheck=all")
+  endif ()
 endif ()
 
 if (DEFINED ENV{NETCDF} AND (NOT DEFINED ENV{NETCDF_ROOT}))

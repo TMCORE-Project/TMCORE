@@ -52,7 +52,7 @@ contains
   end subroutine poly_fit_final
 
   subroutine poly_fit_run()
-    
+
     real(real_kind) xc(0:maxFitCells)
     real(real_kind) yc(0:maxFitCells)
     real(real_kind) zc(0:maxFitCells)
@@ -119,10 +119,10 @@ contains
         theta(i) = calc_sphere_angle([xc(0),yc(0),zc(0)], &
                                      [xc(1),yc(1),zc(1)], &
                                      [xc(i),yc(i),zc(i)])
-        
+
         distance = radius * calc_arc_length([xc(0),yc(0),zc(0)], &
                                             [xc(i),yc(i),zc(i)])
-        
+
         xp(i) = cos(theta(i)) * distance
         yp(i) = sin(theta(i)) * distance
       end do
@@ -178,10 +178,10 @@ contains
         theta(i) = calc_sphere_angle([xc(0),yc(0),zc(0)], &
                                      [xc(1),yc(1),zc(1)], &
                                      [xc(i),yc(i),zc(i)])
-        
+
         distance = radius * calc_arc_length([xc(0),yc(0),zc(0)], &
                                             [xc(i),yc(i),zc(i)])
-        
+
         xp(i) = cos(theta(i)) * distance
         yp(i) = sin(theta(i)) * distance
       end do
@@ -195,16 +195,16 @@ contains
       do i = 1, m
         P(i,1 ) = xp(i)
         P(i,2 ) = yp(i)
- 
+
         P(i,3 ) = xp(i)**2
         P(i,4 ) = xp(i) * yp(i)
         P(i,5 ) = yp(i)**2
- 
+
         P(i,6 ) = xp(i)**3
         P(i,7 ) = yp(i) * (xp(i)**2)
         P(i,8 ) = xp(i) * (yp(i)**2)
         P(i,9 ) = yp(i)**3
- 
+
         P(i,10) = xp(i)**4
         P(i,11) = yp(i) * (xp(i)**3)
         P(i,12) = (xp(i)**2)*(yp(i)**2)
@@ -236,7 +236,7 @@ contains
         end do
       end do
     end do
-    
+
   end subroutine poly_fit_run
 
 end module poly_fit_mod
