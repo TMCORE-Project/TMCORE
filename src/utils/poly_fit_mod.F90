@@ -52,7 +52,8 @@ contains
   end subroutine poly_fit_final
 
   subroutine poly_fit_run()
-
+    implicit none
+    
     real(real_kind) xc(0:maxFitCells)
     real(real_kind) yc(0:maxFitCells)
     real(real_kind) zc(0:maxFitCells)
@@ -116,13 +117,13 @@ contains
       xp(0) = 0.0d0
       yp(0) = 0.0d0
       do i = 1, nFitCellsOnCell(2,iCell) - 1
-        if (i == 1) then
-          theta(i) = 0.0d0
-        else
-          j = i - 1
-          theta(i) = theta(j) + calc_sphere_angle([xc(0),yc(0),zc(0)], [xc(j),yc(j),zc(j)], [xc(i),yc(i),zc(i)])
-        end if
-        d = radius * calc_arc_length([xc(0),yc(0),zc(0)], [xc(i),yc(i),zc(i)])
+        theta(i) = calc_sphere_angle([xc(0),yc(0),zc(0)], &
+                                     [xc(1),yc(1),zc(1)], &
+                                     [xc(i),yc(i),zc(i)])
+        
+        d        = radius * calc_arc_length([xc(0),yc(0),zc(0)], &
+                                            [xc(i),yc(i),zc(i)])
+        
         xp(i) = cos(theta(i)) * d
         yp(i) = sin(theta(i)) * d
       end do
@@ -146,8 +147,9 @@ contains
       PT    (1:n,1:m) = transpose(P(1:m,1:n))
       PTWTW (1:n,1:m) = matmul(PT(1:n,1:m), WTW(1:m,1:m))
       PTWTWP(1:n,1:n) = matmul(PTWTW(1:n,1:m), P(1:m,1:n))
-      call math_inv_matrix(n, PTWTWP(1:n,1:n), B(1:n,1:m))
-      B(1:n,1:m) = matmul(B(1:n,1:m), PTWTW(1:n,1:m))
+      call math_inv_matrix(n, PTWTWP(1:n,1:n), B(1:n,1:n))
+      !call lapack_inv_matrix(n, PTWTWP(1:n,1:n), B(1:n,1:n))
+      B     (1:n,1:m) = matmul(B(1:n,1:n), PTWTW(1:n,1:m))
 
       ! Calculate second-order derivative weights.
       do i = 1, nEdgesOnCell(iCell)
@@ -175,13 +177,13 @@ contains
       xp(0) = 0.0d0
       yp(0) = 0.0d0
       do i = 1, nFitCellsOnCell(4,iCell) - 1
-        if (i == 1) then
-          theta(i) = 0.0d0
-        else
-          j = i - 1
-          theta(i) = theta(j) + calc_sphere_angle([xc(0),yc(0),zc(0)], [xc(j),yc(j),zc(j)], [xc(i),yc(i),zc(i)])
-        end if
-        d = radius * calc_arc_length([xc(0),yc(0),zc(0)], [xc(i),yc(i),zc(i)])
+        theta(i) = calc_sphere_angle([xc(0),yc(0),zc(0)], &
+                                     [xc(1),yc(1),zc(1)], &
+                                     [xc(i),yc(i),zc(i)])
+        
+        d        = radius * calc_arc_length([xc(0),yc(0),zc(0)], &
+                                            [xc(i),yc(i),zc(i)])
+        
         xp(i) = cos(theta(i)) * d
         yp(i) = sin(theta(i)) * d
       end do
@@ -193,47 +195,51 @@ contains
       W = 0.0d0 ! m x m
       B = 0.0d0 ! n x m
       do i = 1, m
-        P(i, 1) = xp(i)
-        P(i, 2) =            yp(i)
-        P(i, 3) = xp(i)**2
-        P(i, 4) = xp(i)    * yp(i)
-        P(i, 5) =            yp(i)**2
-        P(i, 6) = xp(i)**3
-        P(i, 7) = xp(i)**2 * yp(i)
-        P(i, 8) = xp(i)    * yp(i)**2
-        P(i, 9) = xp(i)**3
-        P(i,10) = xp(i)**4
-        P(i,11) = xp(i)**3 * yp(i)
-        P(i,12) = xp(i)**2 * yp(i)**2
-        P(i,13) = xp(i)    * yp(i)**3
-        P(i,14) =            yp(i)**4
-        W(i,i) = 1.0d0
+          P(i,1 ) = xp(i)
+          P(i,2 ) = yp(i)
+   
+          P(i,3 ) = xp(i)**2
+          P(i,4 ) = xp(i) * yp(i)
+          P(i,5 ) = yp(i)**2
+   
+          P(i,6 )  = xp(i)**3
+          P(i,7 )  = yp(i) * (xp(i)**2)
+          P(i,8 )  = xp(i) * (yp(i)**2)
+          P(i,9 ) = yp(i)**3
+   
+          P(i,10) = xp(i)**4
+          P(i,11) = yp(i) * (xp(i)**3)
+          P(i,12) = (xp(i)**2)*(yp(i)**2)
+          P(i,13) = xp(i) * (yp(i)**3)
+          P(i,14) = yp(i)**4
+          W(i,i ) = 1.0d0
       end do
 
       WTW   (1:m,1:m) = matmul(transpose(W(1:m,1:m)), W(1:m,1:m))
       PT    (1:n,1:m) = transpose(P(1:m,1:n))
       PTWTW (1:n,1:m) = matmul(PT(1:n,1:m), WTW(1:m,1:m))
       PTWTWP(1:n,1:n) = matmul(PTWTW(1:n,1:m), P(1:m,1:n))
-      call math_inv_matrix(n, PTWTWP(1:n,1:n), B(1:n,1:m))
-      B(1:n,1:m) = matmul(B(1:n,1:m), PTWTW(1:n,1:m))
+      call math_inv_matrix(n, PTWTWP(1:n,1:n), B(1:n,1:n))
+      !call lapack_inv_matrix(n, PTWTWP(1:n,1:n), B(1:n,1:n))
+      B     (1:n,1:m) = matmul(B(1:n,1:n), PTWTW(1:n,1:m))
 
-      ! Calculate third-order and fourth-order derivative weights.
+      ! Calculate second-order derivative weights.
       do i = 1, nEdgesOnCell(iCell)
         iEdge = edgesOnCell(i,iCell)
         k = merge(1, 2, iCell == cellsOnEdge(1,iEdge))
         cos_theta     = cos(theta(i))
         sin_theta     = sin(theta(i))
-        do j = 1, nFitCellsOnCell(2,iCell) - 1
-          d4fdx4    = 24.0d0 * B(10,j) * cos_theta**4
-          d4fdx3dy  =  6.0d0 * B(11,j) * cos_theta**3 * sin_theta
-          d4fdx2dy2 =  4.0d0 * B(12,j) * cos_theta**2 * sin_theta**2
-          d4fdxdy3  =  6.0d0 * B(13,j) * cos_theta    * sin_theta**3
-          d4fdy4    = 24.0d0 * B(14,j) * sin_theta**4
+        do j = 1, nFitCellsOnCell(4,iCell) - 1
+          d4fdx4    = 24.0d0 * B(10,j) *  cos_theta**4
+          d4fdx3dy  =  6.0d0 * B(11,j) * (cos_theta**3) *  sin_theta
+          d4fdx2dy2 =  4.0d0 * B(12,j) * (cos_theta**2) * (sin_theta**2)
+          d4fdxdy3  =  6.0d0 * B(13,j) *  cos_theta     * (sin_theta**3)
+          d4fdy4    = 24.0d0 * B(14,j) *  sin_theta**4
           derivOnCell(j,k,4,iEdge) = d4fdx4 + 4.0d0 * d4fdx3dy + 6.0d0 * d4fdx2dy2 + 4.0d0 * d4fdxdy3 + d4fdy4
         end do
       end do
     end do
-
+    
   end subroutine poly_fit_run
 
 end module poly_fit_mod

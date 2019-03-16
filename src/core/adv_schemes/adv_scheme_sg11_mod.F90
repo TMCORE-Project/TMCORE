@@ -74,18 +74,10 @@ contains
         iCell2 = cellsOnEdge(2,iEdge)
 
         ! Compute 2nd order derivatives.
-        d2fdx2_cell1 = 0.0d0
-        do i = 1, nFitCellsOnCell(2,iCell1) - 1
-          d2fdx2_cell1 = d2fdx2_cell1 + derivOnCell(i,1,2,iEdge) * (f_cell(fitCellsOnCell(i,2,iCell1)) - f_cell(iCell1))
-        end do
-        d2fdx2_cell2 = 0.0d0
-        do i = 1, nFitCellsOnCell(2,iCell2) - 1
-          d2fdx2_cell2 = d2fdx2_cell2 + derivOnCell(i,2,2,iEdge) * (f_cell(fitCellsOnCell(i,2,iCell2)) - f_cell(iCell2))
-        end do
+        d2fdx2_cell1 = sum( derivOnCell(1:nFitCellsOnCell(2,iCell1)-1,1,2,iEdge) * (f_cell(fitCellsOnCell(1:nFitCellsOnCell(2,iCell1)-1,2,iCell1)) - f_cell(iCell1)) )
+        d2fdx2_cell2 = sum( derivOnCell(1:nFitCellsOnCell(2,iCell2)-1,2,2,iEdge) * (f_cell(fitCellsOnCell(1:nFitCellsOnCell(2,iCell2)-1,2,iCell2)) - f_cell(iCell2)) )
         
-        f_edge(iEdge) = f_edge(iEdge) - dcEdge(iEdge)**2 * ( &
-          (d2fdx2_cell1 + d2fdx2_cell2) - sign(1.0d0, u_edge(iEdge)) * coef2 * (d2fdx2_cell2 - d2fdx2_cell1) &
-        ) / 12.0d0
+        f_edge(iEdge) = f_edge(iEdge) - dcEdge(iEdge)**2 * ( (d2fdx2_cell1 + d2fdx2_cell2) - sign(1.0d0, u_edge(iEdge)) * coef2 * (d2fdx2_cell2 - d2fdx2_cell1) ) / 12.0d0
       end do
     else if (adv_order == 5 .or. adv_order == 6) then
       do iEdge = lbound(f_edge, 1), ubound(f_edge, 1)
@@ -93,27 +85,15 @@ contains
         iCell2 = cellsOnEdge(2,iEdge)
 
         ! Compute 2nd order derivatives.
-        d2fdx2_cell1 = 0.0d0
-        do i = 1, nFitCellsOnCell(2,iCell1) - 1
-          d2fdx2_cell1 = d2fdx2_cell1 + derivOnCell(i,1,2,iEdge) * (f_cell(fitCellsOnCell(i,2,iCell1)) - f_cell(iCell1))
-        end do
-        d2fdx2_cell2 = 0.0d0
-        do i = 1, nFitCellsOnCell(2,iCell2) - 1
-          d2fdx2_cell2 = d2fdx2_cell2 + derivOnCell(i,2,2,iEdge) * (f_cell(fitCellsOnCell(i,2,iCell2)) - f_cell(iCell2))
-        end do
+        d2fdx2_cell1 = sum( derivOnCell(1:nFitCellsOnCell(2,iCell1)-1,1,2,iEdge) * (f_cell(fitCellsOnCell(1:nFitCellsOnCell(2,iCell1)-1,2,iCell1)) - f_cell(iCell1)) )
+        d2fdx2_cell2 = sum( derivOnCell(1:nFitCellsOnCell(2,iCell2)-1,2,2,iEdge) * (f_cell(fitCellsOnCell(1:nFitCellsOnCell(2,iCell2)-1,2,iCell2)) - f_cell(iCell2)) )
         
-        ! Compute 4th order derivatives.
-        d4fdx4_cell1 = 0.0d0
-        do i = 1, nFitCellsOnCell(4,iCell1) - 1
-          d4fdx4_cell1 = d4fdx4_cell1 + derivOnCell(i,1,4,iEdge) * (f_cell(fitCellsOnCell(i,4,iCell1)) - f_cell(iCell1))
-        end do
-        d4fdx4_cell2 = 0.0d0
-        do i = 1, nFitCellsOnCell(4,iCell2) - 1
-          d4fdx4_cell2 = d4fdx4_cell2 + derivOnCell(i,2,4,iEdge) * (f_cell(fitCellsOnCell(i,4,iCell2)) - f_cell(iCell2))
-        end do
-
+        d4fdx4_cell1 = sum( derivOnCell(1:nFitCellsOnCell(4,iCell1)-1,1,4,iEdge) * (f_cell(fitCellsOnCell(1:nFitCellsOnCell(4,iCell1)-1,4,iCell1)) - f_cell(iCell1)) )
+        d4fdx4_cell2 = sum( derivOnCell(1:nFitCellsOnCell(4,iCell2)-1,2,4,iEdge) * (f_cell(fitCellsOnCell(1:nFitCellsOnCell(4,iCell2)-1,4,iCell2)) - f_cell(iCell2)) )
+        
         f_edge(iEdge) = f_edge(iEdge) - dcEdge(iEdge)**2 * (d2fdx2_cell1 + d2fdx2_cell2) / 12.0d0 &
-          + dcEdge(iEdge)**4 * ((d4fdx4_cell1 + d4fdx4_cell2) - sign(1.0d0, u_edge(iEdge)) * coef4 * (d4fdx4_cell2 - d4fdx4_cell1)) / 60.0d0
+                                      + dcEdge(iEdge)**4 * ((d4fdx4_cell1 + d4fdx4_cell2) &
+                                                           - sign(1.0d0, u_edge(iEdge)) * coef4 * (d4fdx4_cell2 - d4fdx4_cell1)) / 60.0d0
       end do
     end if
 

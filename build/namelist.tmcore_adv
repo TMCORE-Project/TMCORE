@@ -12,7 +12,7 @@ frames_per_file    = '2 months'
 &tmcore
 conserve_energy = .false.
 time_scheme     = 2
-adv_order       = 3
+adv_order       = 5
 adv_mono        = .true.
 mesh_file_path  = './x1.40962.grid.nc'
 /

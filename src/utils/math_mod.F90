@@ -4,11 +4,25 @@ module math_mod
   use log_mod
 
   private
-
+  
+  public cross_product
   public math_inv_matrix
+  public lapack_inv_matrix
 
-contains
+  contains
 
+  function cross_product(x, y) result(res)
+
+    real(real_kind), intent(in) :: x(3)
+    real(real_kind), intent(in) :: y(3)
+    real(real_kind) res(3)
+
+    res(1) = x(2) * y(3) - x(3) * y(2)
+    res(2) = x(3) * y(1) - x(1) * y(3)
+    res(3) = x(1) * y(2) - x(2) * y(1)
+
+  end function cross_product
+    
 #ifndef NOLAPACK
   subroutine lapack_inv_matrix(n, A, B)
 
