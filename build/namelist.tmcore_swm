@@ -10,13 +10,13 @@ frames_per_file    = '2 months'
 /
 
 &tmcore
-conserve_energy        = .false.
-flux_4th_order_correct = .true.
+conserve_energy        = .true.
 time_scheme            = 2
-pv_scheme              = 1
+pv_scheme              = 3
 apvm_weight            = 0.5
 adv_order              = 5
 adv_mono               = .true.
+interp_pv_order        = 3
 flux_4th_order_correct = .false.
 mesh_file_path         = './x1.40962.grid.nc'
 /

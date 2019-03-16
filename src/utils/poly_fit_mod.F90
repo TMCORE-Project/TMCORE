@@ -20,8 +20,17 @@ module poly_fit_mod
   public deriv2OnCell
   public deriv3OnCell
   public deriv4OnCell
+  public nFit2Vertices
+  public nFit3Vertices
+  public nFit4Vertices
+  public fit2Vertices
+  public fit3Vertices
+  public fit4Vertices
+  public deriv2OnVertex
+  public deriv3OnVertex
+  public deriv4OnVertex
 
-  integer, parameter :: maxFitCells = 25
+  integer, parameter :: maxFitCells = 30
 
   integer, allocatable :: nFit2Cells   (:)
   integer, allocatable :: nFit3Cells   (:)
@@ -74,6 +83,7 @@ contains
     if (.not. allocated(deriv2OnVertex )) allocate(deriv2OnVertex(0:maxFitCells,2,nEdges ))
     if (.not. allocated(deriv3OnVertex )) allocate(deriv3OnVertex(0:maxFitCells,2,nEdges ))
     if (.not. allocated(deriv4OnVertex )) allocate(deriv4OnVertex(0:maxFitCells,2,nEdges ))
+    
     call poly_fit_run()
 
   end subroutine poly_fit_init
@@ -128,10 +138,16 @@ contains
     real(real_kind) d4fdx4, d4fdx3dy, d4fdx2dy2, d4fdxdy3, d4fdy4
     integer m ! Number of involving cells except for center cell
     integer n ! Number of parameters for polynomial fit
-    integer iCell, iNgbCell, iRecordedNgbCell, iEdge, iOrder, i, j, k
+    integer iCell, iEdge, iVertex
+    integer iNgbCell  , iRecordedNgbCell
+    integer iNgbVertex, iRecordedNgbVertex
+    integer i, j, k
+    integer iVertexOnVertex, haloVertex, haloCell
     logical recorded
-
-    ! Fitting on cells
+    
+    !!!!!!!!!!!!!!!!!!!!
+    ! Fitting on cells !
+    !!!!!!!!!!!!!!!!!!!!
     do iCell = 1, nCells
       ! Record cell indices for fitting.
       fit2Cells(0,iCell) = iCell
@@ -376,6 +392,219 @@ contains
         end do
       end do
     end do
+    
+    !!!!!!!!!!!!!!!!!!!!!!!
+    ! Fitting on vertices !
+    !!!!!!!!!!!!!!!!!!!!!!!
+    do iVertex = 1, nVertices
+      ! Record cell indices for fitting.
+      fit2Vertices(0,iVertex) = iVertex
+      fit3Vertices(0,iVertex) = iVertex
+      fit4Vertices(0,iVertex) = iVertex
+      
+      ! Choose the neighbor vertices for calculate the local coordicate
+      do i = 1, vertexDegree
+        fit2Vertices(i,iVertex) = verticesOnVertex(i,iVertex)
+      end do
+      nFit2Vertices(iVertex)  = 4
+      
+      ! First halo
+      haloVertex = iVertex
+      do i = 1, vertexDegree
+        haloCell = cellsOnVertex(i,haloVertex)
+        do j = 1, nEdgesOnCell(haloCell)
+          iNgbVertex = verticesOnCell(j,haloCell)
+          
+          ! Check if vertex has been recorded.
+          recorded = .false.
+          do k = 0, nFit2Vertices(iVertex) - 1
+            iRecordedNgbVertex = fit2Vertices(k,iVertex)
+            if(iNgbVertex == iRecordedNgbVertex)then
+              recorded = .true.
+              exit
+            end if
+          end do
+          
+          if (.not. recorded) then
+            fit2Vertices(nFit2Vertices(iVertex),iVertex) = iNgbVertex
+            nFit2Vertices(iVertex) = nFit2Vertices(iVertex) + 1
+          end if
+        end do
+      end do
+      nFit3Vertices(iVertex)  = nFit2Vertices(iVertex)
+      nFit4Vertices(iVertex)  = nFit2Vertices(iVertex)
+      fit3Vertices(:,iVertex) = fit2Vertices(:,iVertex)
+      fit4Vertices(:,iVertex) = fit2Vertices(:,iVertex)
+      
+      ! Second halo
+      do iVertexOnVertex = 1, vertexDegree
+        haloVertex = verticesOnVertex(iVertexOnVertex,iVertex)
+        do i = 1, vertexDegree
+          haloCell = cellsOnVertex(i,haloVertex)
+          do j = 1, nEdgesOnCell(haloCell)
+            iNgbVertex = verticesOnCell(j,haloCell)
+            
+            ! Check if vertex has been recorded.
+            recorded = .false.
+            do k = 0, nFit4Vertices(iVertex) - 1
+              iRecordedNgbVertex = fit4Vertices(k,iVertex)
+              if(iNgbVertex == iRecordedNgbVertex)then
+                recorded = .true.
+                exit
+              end if
+            end do
+
+            if (.not. recorded) then
+              fit4Vertices(nFit4Vertices(iVertex),iVertex) = iNgbVertex
+              nFit4Vertices(iVertex) = nFit4Vertices(iVertex) + 1
+            end if
+          end do
+        end do
+      end do
+
+      !!!!!!!!!!!!!!!!!!!!
+      ! Second-order fit !
+      !!!!!!!!!!!!!!!!!!!!
+      ! Get Cartesian coordinates of fit cells (remove Earth radius).
+      do i = 0, nFit2Vertices(iVertex) - 1
+        xc(i) = xVertex(fit2Vertices(i,iVertex)) / radius
+        yc(i) = yVertex(fit2Vertices(i,iVertex)) / radius
+        zc(i) = zVertex(fit2Vertices(i,iVertex)) / radius
+      end do
+
+      ! Calculate angles and projected coordinates.
+      xp(0) = 0.0d0
+      yp(0) = 0.0d0
+      do i = 1, nFit2Vertices(iVertex) - 1
+        theta(i) = calc_sphere_angle([xc(0),yc(0),zc(0)], &
+                                     [xc(1),yc(1),zc(1)], &
+                                     [xc(i),yc(i),zc(i)])
+        
+        d        = radius * calc_arc_length([xc(0),yc(0),zc(0)], &
+                                            [xc(i),yc(i),zc(i)])
+        
+        xp(i) = cos(theta(i)) * d
+        yp(i) = sin(theta(i)) * d
+      end do
+
+      ! Set matrices for least square fit.
+      m = nFit2Vertices(iVertex) - 1
+      n = 5
+      P = 0.0d0 ! m x n
+      W = 0.0d0 ! m x m
+      B = 0.0d0 ! n x m
+      do i = 1, m
+        P(i,1) = xp(i)
+        P(i,2) = yp(i)
+        P(i,3) = xp(i)**2
+        P(i,4) = xp(i) * yp(i)
+        P(i,5) = yp(i)**2
+        W(i,i) = 1.0d0
+      end do
+
+      WTW   (1:m,1:m) = matmul(transpose(W(1:m,1:m)), W(1:m,1:m))
+      PT    (1:n,1:m) = transpose(P(1:m,1:n))
+      PTWTW (1:n,1:m) = matmul(PT(1:n,1:m), WTW(1:m,1:m))
+      PTWTWP(1:n,1:n) = matmul(PTWTW(1:n,1:m), P(1:m,1:n))
+      call math_inv_matrix(n, PTWTWP(1:n,1:n), B(1:n,1:n))
+      !call lapack_inv_matrix(n, PTWTWP(1:n,1:n), B(1:n,1:n))
+      B     (1:n,1:m) = matmul(B(1:n,1:n), PTWTW(1:n,1:m))
+
+      ! Calculate second-order derivative weights.
+      do i = 1, vertexDegree
+        iEdge = edgesOnVertex(i,iVertex)
+        k = merge(1, 2, iVertex == verticesOnEdge(1,iEdge))
+        
+        cos_theta = cos(theta(i))
+        sin_theta = sin(theta(i))
+        do j = 1, nFit2Vertices(iVertex) - 1
+          d2fdx2  = 2.0d0 * B(3,j) * cos_theta**2
+          d2fdxdy =         B(4,j) * cos_theta * sin_theta
+          d2fdy2  = 2.0d0 * B(5,j) * sin_theta**2
+          
+          deriv2OnVertex(j,k,iEdge) = d2fdx2 + 2.0d0 * d2fdxdy + d2fdy2
+        end do
+      end do
+      
+      !!!!!!!!!!!!!!!!!!!!
+      ! Fourth-order fit !
+      !!!!!!!!!!!!!!!!!!!!
+      ! Get Cartesian coordinates of fit cells (remove Earth radius).
+      do i = 0, nFit4Vertices(iVertex) - 1
+        xc(i) = xVertex(fit4Vertices(i,iVertex)) / radius
+        yc(i) = yVertex(fit4Vertices(i,iVertex)) / radius
+        zc(i) = zVertex(fit4Vertices(i,iVertex)) / radius
+      end do
+
+      ! Calculate angles and projected coordinates.
+      xp(0) = 0.0d0
+      yp(0) = 0.0d0
+      do i = 1, nFit4Vertices(iVertex) - 1
+        theta(i) = calc_sphere_angle([xc(0),yc(0),zc(0)], &
+                                     [xc(1),yc(1),zc(1)], &
+                                     [xc(i),yc(i),zc(i)])
+        
+        d        = radius * calc_arc_length([xc(0),yc(0),zc(0)], &
+                                            [xc(i),yc(i),zc(i)])
+        
+        xp(i) = cos(theta(i)) * d
+        yp(i) = sin(theta(i)) * d
+      end do
+
+      ! Set matrices for least square fit.
+      m = nFit4Vertices(iVertex) - 1
+      n = 14
+      P = 0.0d0 ! m x n
+      W = 0.0d0 ! m x m
+      B = 0.0d0 ! n x m
+      do i = 1, m
+          P(i,1 ) = xp(i)
+          P(i,2 ) = yp(i)
+   
+          P(i,3 ) = xp(i)**2
+          P(i,4 ) = xp(i) * yp(i)
+          P(i,5 ) = yp(i)**2
+   
+          P(i,6 )  = xp(i)**3
+          P(i,7 )  = yp(i) * (xp(i)**2)
+          P(i,8 )  = xp(i) * (yp(i)**2)
+          P(i,9 ) = yp(i)**3
+   
+          P(i,10) = xp(i)**4
+          P(i,11) = yp(i) * (xp(i)**3)
+          P(i,12) = (xp(i)**2)*(yp(i)**2)
+          P(i,13) = xp(i) * (yp(i)**3)
+          P(i,14) = yp(i)**4
+          W(i,i ) = 1.0d0
+      end do
+
+      WTW   (1:m,1:m) = matmul(transpose(W(1:m,1:m)), W(1:m,1:m))
+      PT    (1:n,1:m) = transpose(P(1:m,1:n))
+      PTWTW (1:n,1:m) = matmul(PT(1:n,1:m), WTW(1:m,1:m))
+      PTWTWP(1:n,1:n) = matmul(PTWTW(1:n,1:m), P(1:m,1:n))
+      call math_inv_matrix(n, PTWTWP(1:n,1:n), B(1:n,1:n))
+      !call lapack_inv_matrix(n, PTWTWP(1:n,1:n), B(1:n,1:n))
+      B     (1:n,1:m) = matmul(B(1:n,1:n), PTWTW(1:n,1:m))
+
+      ! Calculate second-order derivative weights.
+      do i = 1, vertexDegree
+        iEdge = edgesOnVertex(i,iVertex)
+        k = merge(1, 2, iVertex == verticesOnEdge(1,iEdge))
+        
+        cos_theta = cos(theta(i))
+        sin_theta = sin(theta(i))
+        do j = 1, nFit4Vertices(iVertex) - 1
+          d4fdx4    = 24.0d0 * B(10,j) *  cos_theta**4
+          d4fdx3dy  =  6.0d0 * B(11,j) * (cos_theta**3) *  sin_theta
+          d4fdx2dy2 =  4.0d0 * B(12,j) * (cos_theta**2) * (sin_theta**2)
+          d4fdxdy3  =  6.0d0 * B(13,j) *  cos_theta     * (sin_theta**3)
+          d4fdy4    = 24.0d0 * B(14,j) *  sin_theta**4
+          
+          deriv4OnVertex(j,k,iEdge) = d4fdx4 + 4.0d0 * d4fdx3dy + 6.0d0 * d4fdx2dy2 + 4.0d0 * d4fdxdy3 + d4fdy4
+        end do
+      end do
+      
+    end do ! end do loop iVertex = 1, nVertices
     
   end subroutine poly_fit_run
 

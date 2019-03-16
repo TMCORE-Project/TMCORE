@@ -145,7 +145,7 @@ contains
     
     iap_gd_edge = sqrt(gd_edge)
     
-    dEdx  = ( E(cellsOnEdge(2,:)) -  E(cellsOnEdge(1,:))) / dcEdge
+    dEdx  = ( E(cellsOnEdge(2,:)) - E(cellsOnEdge(1,:))) / dcEdge
     
     if (flux_4th_order_correct)then
       do iEdge = lbound(u_tend_edge, 1), ubound(u_tend_edge, 1)

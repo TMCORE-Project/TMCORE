@@ -6,6 +6,7 @@ module operators_mod
   use static_mod
   use state_mod
   use tend_mod
+  use poly_fit_mod
 
   implicit none
 
@@ -282,15 +283,9 @@ contains
     case (1)
       call calc_pv_on_edge_APVM(u_edge, v_edge, pv_vertex, pv_cell, pv_edge)
     case (2)
-      call calc_pv_on_edge_CLUST()
-    case (3)
-      call calc_pv_on_edge_LUST()
-    case (4)
       call calc_pv_on_edge_conservative_APVM(u_edge, v_edge, gd_edge, gd_tend_vertex, pv_vertex, pv_cell, pv_edge)
-    case (5)
-      call calc_pv_on_edge_order2()
-    case (6)
-      call calc_pv_on_edge_smoothed_order2()
+    case (3)
+      call calc_pv_on_edge_high_order_upwind(u_edge, v_edge, gd_edge, gd_tend_vertex, pv_vertex, pv_edge)
     case default
       call log_error('Unknow PV scheme, please choose from 1 (APVM), 2 (CLUST), 3 (LUST), 4 (conservative APVM), 5 (order2), 6 (smoothed order2)!')
     end select
@@ -360,29 +355,59 @@ contains
 
   end subroutine calc_pv_on_edge_conservative_APVM
 
-  subroutine calc_pv_on_edge_CLUST()
+  subroutine calc_pv_on_edge_high_order_upwind(u_edge, v_edge, gd_edge, gd_tend_vertex, pv_vertex, pv_edge)
+    real(real_kind), intent(in)  :: u_edge        (:)
+    real(real_kind), intent(in)  :: v_edge        (:)
+    real(real_kind), intent(in)  :: gd_edge       (:)
+    real(real_kind), intent(in)  :: gd_tend_vertex(:)
+    real(real_kind), intent(in)  :: pv_vertex     (:)
+    real(real_kind), intent(out) :: pv_edge       (:)
+    
+    real(real_kind) :: coef2 = 0.5d0
+    real(real_kind) :: coef4 = 0.25d0
 
-    ! Under construction
+    real(real_kind) d2fdx2_vertex1, d2fdx2_vertex2 ! 2nd order derivatives
+    real(real_kind) d4fdx4_vertex1, d4fdx4_vertex2 ! 4th order derivatives
+    
+    integer i, iEdge, iVertex1, iVertex2
+    real(real_kind) eps
+    
+    call scalar_v2e_interp_operator(pv_vertex, pv_edge)
 
-  end subroutine calc_pv_on_edge_CLUST
+    coef2 = 0.0d0
+    if (interp_pv_order == 3 ) coef2 =  1.d0
+    if (interp_pv_order >= 4 ) coef2 =  0.0d0
+    if (interp_pv_order == 6 ) coef4 =  0.0d0
 
-  subroutine calc_pv_on_edge_LUST()
+    if (interp_pv_order == 3 .or. interp_pv_order == 4) then
+      do iEdge = lbound(u_edge, 1), ubound(u_edge, 1)
+        iVertex1 = verticesOnEdge(1,iEdge)
+        iVertex2 = verticesOnEdge(2,iEdge)
 
-    ! Under construction
+        ! Compute 2nd order derivatives.
+        d2fdx2_vertex1 = sum( deriv2OnVertex(1:nFit2Vertices(iVertex1)-1,1,iEdge) * (pv_vertex(fit2Vertices(1:nFit2Vertices(iVertex1)-1,iVertex1)) - pv_vertex(iVertex1)) )
+        d2fdx2_vertex2 = sum( deriv2OnVertex(1:nFit2Vertices(iVertex2)-1,2,iEdge) * (pv_vertex(fit2Vertices(1:nFit2Vertices(iVertex2)-1,iVertex2)) - pv_vertex(iVertex2)) )
+        
+        pv_edge(iEdge) = pv_edge(iEdge) - dvEdge(iEdge)**2 * ( (d2fdx2_vertex1 + d2fdx2_vertex2) - sign(1.0d0, v_edge(iEdge)) * coef2 * (d2fdx2_vertex2 - d2fdx2_vertex1) ) / 12.0d0
+      end do
+    else if (interp_pv_order == 5 .or. interp_pv_order == 6) then
+      do iEdge = lbound(u_edge, 1), ubound(u_edge, 1)
+        iVertex1 = verticesOnEdge(1,iEdge)
+        iVertex2 = verticesOnEdge(2,iEdge)
 
-  end subroutine calc_pv_on_edge_LUST
+        ! Compute 2nd order derivatives.
+        d2fdx2_vertex1 = sum( deriv2OnVertex(1:nFit2Vertices(iVertex1)-1,1,iEdge) * (pv_vertex(fit2Vertices(1:nFit2Vertices(iVertex1)-1,iVertex1)) - pv_vertex(iVertex1)) )
+        d2fdx2_vertex2 = sum( deriv2OnVertex(1:nFit2Vertices(iVertex2)-1,2,iEdge) * (pv_vertex(fit2Vertices(1:nFit2Vertices(iVertex2)-1,iVertex2)) - pv_vertex(iVertex2)) )
+        ! Compute 4th order derivatives.
+        d4fdx4_vertex1 = sum( deriv4OnVertex(1:nFit4Vertices(iVertex1)-1,1,iEdge) * (pv_vertex(fit4Vertices(1:nFit4Vertices(iVertex1)-1,iVertex1)) - pv_vertex(iVertex1)) )
+        d4fdx4_vertex2 = sum( deriv4OnVertex(1:nFit4Vertices(iVertex2)-1,2,iEdge) * (pv_vertex(fit4Vertices(1:nFit4Vertices(iVertex2)-1,iVertex2)) - pv_vertex(iVertex2)) )
+        
+        pv_edge(iEdge) = pv_edge(iEdge) - dvEdge(iEdge)**2 *  (d2fdx2_vertex1 + d2fdx2_vertex2) / 12.0d0 &
+                                        + dvEdge(iEdge)**4 * ((d4fdx4_vertex1 + d4fdx4_vertex2) - sign(1.0d0, v_edge(iEdge)) * coef4 * (d4fdx4_vertex2 - d4fdx4_vertex1)) / 60.0d0
+      end do
+    end if
 
-  subroutine calc_pv_on_edge_order2()
-
-    ! Under construction
-
-  end subroutine calc_pv_on_edge_order2
-
-  subroutine calc_pv_on_edge_smoothed_order2()
-
-    ! Under construction
-
-  end subroutine calc_pv_on_edge_smoothed_order2
+  end subroutine calc_pv_on_edge_high_order_upwind
 
   subroutine calc_vor_tend_on_vertex(u_tend_edge, vor_tend_vertex)
 

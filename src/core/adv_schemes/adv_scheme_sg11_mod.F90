@@ -59,7 +59,7 @@ contains
     real(real_kind) d2fdx2_cell1, d2fdx2_cell2 ! 2nd order derivatives
     real(real_kind) d4fdx4_cell1, d4fdx4_cell2 ! 4th order derivatives
   
-    integer i, iEdge, iCell1, icell2
+    integer i, iEdge, iCell1, iCell2
 
     coef2 = 0.0d0
     if (adv_order == 3               ) coef2 =  1.0d0
@@ -73,7 +73,6 @@ contains
         iCell2 = cellsOnEdge(2,iEdge)
 
         ! Compute 2nd order derivatives.
-        ! derivOnCell dimension meaning : fitCells, cellsOnEdge, fitOrder, edge index;                 fitCells dimension meaning : fitCells, fitOrder, cell index
         d2fdx2_cell1 = sum( deriv2OnCell(1:nFit2Cells(iCell1)-1,1,iEdge) * (f_cell(fit2Cells(1:nFit2Cells(iCell1)-1,iCell1)) - f_cell(iCell1)) )
         d2fdx2_cell2 = sum( deriv2OnCell(1:nFit2Cells(iCell2)-1,2,iEdge) * (f_cell(fit2Cells(1:nFit2Cells(iCell2)-1,iCell2)) - f_cell(iCell2)) )
         

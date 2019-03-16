@@ -57,6 +57,7 @@ module mesh_mod
   integer, allocatable :: edgesOnVertex(:,:)              ! Edge indices that radiate from a given vertex
   integer, allocatable :: verticesOnCell(:,:)             ! Vertex indices that surround a given cell
   integer, allocatable :: verticesOnEdge(:,:)             ! Vertex indices that saddle a given edge
+  integer, allocatable :: verticesOnVertex(:,:)           ! Vertex indices that saddle a given vertex
   ! Weights
   real(real_kind), allocatable :: weightsOnEdge(:,:)      ! Weights to reconstruct tangential velocities
   real(real_kind), allocatable :: meshDensity(:)          ! The value of the generating density function at each cell center
@@ -142,6 +143,7 @@ contains
     allocate(edgesOnVertex(vertexDegree,nVertices))
     allocate(verticesOnCell(maxEdges,nCells))
     allocate(verticesOnEdge(2,nEdges))
+    allocate(verticesOnVertex(vertexDegree,nEdges))
     allocate(weightsOnEdge(maxEdges2,nEdges))
     allocate(meshDensity(nCells))
 
@@ -323,11 +325,18 @@ contains
     tSignEdge = 0
     do iVertex = 1, nVertices
       do i = 1, vertexDegree
-        if (iVertex == verticesOnEdge(1,edgesOnVertex(i,iVertex))) tSignEdge(i,iVertex) =  1
-        if (iVertex == verticesOnEdge(2,edgesOnVertex(i,iVertex))) tSignEdge(i,iVertex) = -1
+        if (iVertex == verticesOnEdge(1,edgesOnVertex(i,iVertex)))then
+            tSignEdge(i,iVertex) =  1
+            verticesOnVertex(i,iVertex) = verticesOnEdge(2,edgesOnVertex(i,iVertex))
+        end if
+        
+        if (iVertex == verticesOnEdge(2,edgesOnVertex(i,iVertex)))then
+            tSignEdge(i,iVertex) = -1
+            verticesOnVertex(i,iVertex) = verticesOnEdge(1,edgesOnVertex(i,iVertex))
+        end if
       end do
     end do
-
+    
     ! Scale mesh parameters.
     xCell             = xCell             * radius
     yCell             = yCell             * radius
