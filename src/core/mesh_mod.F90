@@ -65,6 +65,8 @@ module mesh_mod
   real(real_kind), allocatable :: fCell(:)                ! Coriolis coefficients on a given cell
   real(real_kind), allocatable :: fVertex(:)              ! Coriolis coefficients on a given vertex
 
+  real(real_kind), allocatable :: weightOnVertex1OnEdge(:)     ! Weights of vertex1 on edges
+  real(real_kind), allocatable :: weightOnVertex2OnEdge(:)     ! Weights of vertex2 on edges
 contains
 
   subroutine mesh_init()
@@ -146,6 +148,8 @@ contains
     allocate(verticesOnVertex(vertexDegree,nEdges))
     allocate(weightsOnEdge(maxEdges2,nEdges))
     allocate(meshDensity(nCells))
+    allocate(weightOnVertex1OnEdge(nEdges))
+    allocate(weightOnVertex2OnEdge(nEdges))
 
     ierr = nf90_inq_varid(ncid, 'nEdgesOnCell', varid)
 
@@ -356,6 +360,9 @@ contains
     areaEdge          = areaEdge          * radius**2
     kiteAreasOnVertex = kiteAreasOnVertex * radius**2
 
+    weightOnVertex1OnEdge  = dv2Edge/dvEdge
+    weightOnVertex2OnEdge  = dv1Edge/dvEdge
+    
     totalArea         = sum(areaCell)
 
   end subroutine mesh_init

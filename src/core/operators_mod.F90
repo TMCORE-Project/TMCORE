@@ -371,9 +371,8 @@ contains
     real(real_kind) d4fdx4_vertex1, d4fdx4_vertex2 ! 4th order derivatives
     
     integer i, iEdge, iVertex1, iVertex2
-    real(real_kind) eps
     
-    call scalar_v2e_interp_operator(pv_vertex, pv_edge)
+    pv_edge = weightOnVertex1OnEdge * pv_vertex(verticesOnEdge(1,:)) + weightOnVertex2OnEdge * pv_vertex(verticesOnEdge(2,:))
 
     coef2 = 0.0d0
     if (interp_pv_order == 3 ) coef2 =  1.d0
@@ -389,7 +388,8 @@ contains
         d2fdx2_vertex1 = sum( deriv2OnVertex(1:nFit2Vertices(iVertex1)-1,1,iEdge) * (pv_vertex(fit2Vertices(1:nFit2Vertices(iVertex1)-1,iVertex1)) - pv_vertex(iVertex1)) )
         d2fdx2_vertex2 = sum( deriv2OnVertex(1:nFit2Vertices(iVertex2)-1,2,iEdge) * (pv_vertex(fit2Vertices(1:nFit2Vertices(iVertex2)-1,iVertex2)) - pv_vertex(iVertex2)) )
         
-        pv_edge(iEdge) = pv_edge(iEdge) - dvEdge(iEdge)**2 * ( (d2fdx2_vertex1 + d2fdx2_vertex2) - sign(1.0d0, v_edge(iEdge)) * coef2 * (d2fdx2_vertex2 - d2fdx2_vertex1) ) / 12.0d0
+        pv_edge(iEdge) = pv_edge(iEdge) - dvEdge(iEdge)**2 * ( (d2fdx2_vertex1 * weightOnVertex1OnEdge(iEdge)**2 + d2fdx2_vertex2 * weightOnVertex2OnEdge(iEdge)**2) &
+                        - sign(1.0d0, v_edge(iEdge)) * coef2 * (d2fdx2_vertex2 * weightOnVertex2OnEdge(iEdge)**2 - d2fdx2_vertex1 * weightOnVertex1OnEdge(iEdge)**2) ) / 3.0d0
       end do
     else if (interp_pv_order == 5 .or. interp_pv_order == 6) then
       do iEdge = lbound(u_edge, 1), ubound(u_edge, 1)
@@ -403,8 +403,9 @@ contains
         d4fdx4_vertex1 = sum( deriv4OnVertex(1:nFit4Vertices(iVertex1)-1,1,iEdge) * (pv_vertex(fit4Vertices(1:nFit4Vertices(iVertex1)-1,iVertex1)) - pv_vertex(iVertex1)) )
         d4fdx4_vertex2 = sum( deriv4OnVertex(1:nFit4Vertices(iVertex2)-1,2,iEdge) * (pv_vertex(fit4Vertices(1:nFit4Vertices(iVertex2)-1,iVertex2)) - pv_vertex(iVertex2)) )
         
-        pv_edge(iEdge) = pv_edge(iEdge) - dvEdge(iEdge)**2 *  (d2fdx2_vertex1 + d2fdx2_vertex2) / 12.0d0 &
-                                        + dvEdge(iEdge)**4 * ((d4fdx4_vertex1 + d4fdx4_vertex2) - sign(1.0d0, v_edge(iEdge)) * coef4 * (d4fdx4_vertex2 - d4fdx4_vertex1)) / 60.0d0
+        pv_edge(iEdge) = pv_edge(iEdge) - dvEdge(iEdge)**2 *  (d2fdx2_vertex1 * weightOnVertex1OnEdge(iEdge)**2 + d2fdx2_vertex2 * weightOnVertex2OnEdge(iEdge)**2) / 3.0d0 &
+                                        + dvEdge(iEdge)**4 * ((d4fdx4_vertex1 * weightOnVertex1OnEdge(iEdge)**4 + d4fdx4_vertex2 * weightOnVertex2OnEdge(iEdge)**4)         &
+                       - sign(1.0d0, v_edge(iEdge)) * coef4 * (d4fdx4_vertex2 * weightOnVertex2OnEdge(iEdge)**4 - d4fdx4_vertex1 * weightOnVertex1OnEdge(iEdge)**4)) * 4.d0 / 15.0d0
       end do
     end if
 
