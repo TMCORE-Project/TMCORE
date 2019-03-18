@@ -160,7 +160,7 @@ contains
         d3fdx3_cell1 = sum( deriv3OnCell(1:nFit3Cells(iCell1)-1,1,iEdge) * (E(fit3Cells(1:nFit3Cells(iCell1)-1,iCell1)) - E(iCell1)) )
         d3fdx3_cell2 = sum( deriv3OnCell(1:nFit3Cells(iCell2)-1,2,iEdge) * (E(fit3Cells(1:nFit3Cells(iCell2)-1,iCell2)) - E(iCell2)) )
       
-        dEdx(iEdge)  = dEdx(iEdge) - ( d3fdx3_cell1 + d3fdx3_cell2 ) * dcEdge(iEdge)**2 / 48.d0
+        dEdx(iEdge)  = dEdx(iEdge) - ( d3fdx3_cell2 - d3fdx3_cell1 ) * dcEdge(iEdge) / 24.d0
         
       end do     ! do iEdge
     end if
