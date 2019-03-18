@@ -124,8 +124,8 @@ contains
   subroutine calc_vorticity_tend_on_cell(u_edge, vor_edge, vor_tend_cell)
 
   real(real_kind), intent(in)  :: u_edge      (:)
-  real(real_kind), intent(in)  :: gd_edge     (:)
-  real(real_kind), intent(out) :: gd_tend_cell(:)
+  real(real_kind), intent(in)  :: vor_edge     (:)
+  real(real_kind), intent(out) :: vor_tend_cell(:)
 
   real(real_kind) flux(lbound(u_edge, 1):ubound(u_edge, 1))
   integer iCell
@@ -134,7 +134,7 @@ contains
   
   call div_operator(flux, vor_tend_cell)
 
-  end subroutine calc_gd_tend_on_cell
+  end subroutine calc_vorticity_tend_on_cell
   
   subroutine calc_u_tend_on_edge(u_edge, ke_cell, gd_cell, gd_edge, ghs_cell, pv_flx_edge, pv_vertex, gd_tend_cell, gd_tend_edge, u_tend_edge, iap_u_tend_edge)
 
