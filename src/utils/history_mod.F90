@@ -83,7 +83,7 @@ contains
     ! Dynamical variables
     call io_add_var('u',              long_name='Normal wind on the edge',                     units='m s-1',  dim_names=['nEdges   ', 'Time     '],       data_type='real(8)')
     call io_add_var('h',              long_name='Geopotential height on the cell',             units='m',      dim_names=['nCells   ', 'Time     '],       data_type='real(8)')
-    call io_add_var('pv',             long_name='Potential vorticity on the cell',             units='',       dim_names=['nVertices', 'Time     '],       data_type='real(8)')
+    call io_add_var('pv',             long_name='Potential vorticity on the cell',             units='',       dim_names=['nCells   ', 'Time     '],       data_type='real(8)')
     call io_add_var('div',            long_name='Divergence',                                  units='s-1',    dim_names=['nCells   ', 'Time     '],       data_type='real(8)')
     call io_add_var('tm',             long_name='total mass',                                  units='m2 s-2', dim_names=['Time     '],                    data_type='real(8)')
     call io_add_var('te',             long_name='total energy',                                units='m4 s-4', dim_names=['Time     '],                    data_type='real(8)')
@@ -102,8 +102,6 @@ contains
 
     type(state_type),  intent(inout) :: state
     type(static_type), intent(in   ) :: static
-
-    call div_operator(state%edge%u, state%cell%div)
 
     call io_start_output()
     call io_output('lonCell',         lonCell)
@@ -139,7 +137,7 @@ contains
     call io_output('verticesOnEdge',  verticesOnEdge)
     call io_output('u',               state%edge%u)
     call io_output('h',               (state%cell%gd + static%cell%ghs) / g)
-    call io_output('pv',              state%vertex%pv)
+    call io_output('pv',              state%cell%pv)
     call io_output('div',             state%cell%div)
     call io_output('tm',              state%total_mass)
     call io_output('te',              state%total_energy)

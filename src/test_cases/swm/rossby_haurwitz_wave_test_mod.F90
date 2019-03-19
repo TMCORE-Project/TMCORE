@@ -23,14 +23,13 @@ contains
     
     integer :: iCell, iEdge, iVertex
     real (kind=real_kind), dimension(nVertices) :: psiVertex
-    real (kind=real_kind), dimension(nCells   ) :: aa,bb,cc
+    real (kind=real_kind), dimension(nCells   ) :: A, B, C
     
     write(6, *) '[Notice]: Use rossby haurwitz wave initial condition.'
     
     !
     ! Initialize wind field
     !
-    !allocate(psiVertex(nVertices))
     do iVertex = lbound(state(1)%vertex%pv, 1), ubound(state(1)%vertex%pv, 1)
       psiVertex(iVertex) = - radius * radius * w *   dsin(latVertex(iVertex))       &
                            + radius * radius * K * ( dcos(latVertex(iVertex))**R)   &
@@ -43,23 +42,27 @@ contains
                                 - psiVertex(verticesOnEdge(1,iEdge)) &
                                 ) / dvEdge(iEdge)
     end do
-    
-    aa = 0.5d0 * w * (2.d0 * omega + w) * cos(latCell)**2.d0 + &
-         0.25d0 * K**2.d0 * dcos(latCell)**(2.d0*R) * ((R+1.d0)*dcos(latCell)**2.d0 + 2.d0*R**2.d0 - R - 2.d0 - 2.d0*R**2.d0 * dcos(latCell)**(-2.d0))
-    bb = (2.0*(omega + w)*K / ((R+1.0)*(R+2.0))) * dcos(latCell)**R * ((R**2.0 + 2.0*R + 2.0) - ((R+1.0)*dcos(latCell))**2.0)
-    cc = 0.25 * K**2.0 * dcos(latCell)**(2.0*R) * ((R+1.0)*dcos(latCell)**2.0 - R - 2.0)
+
+    A = 0.5d0 * w * (2.d0 * omega + w) * cos(latCell)**2.d0 + &
+         0.25d0 * K**2.d0 * dcos(latCell)**(2.d0*R) * ((R+1.d0)*cos(latCell)**2.d0 + 2.d0*R**2.d0 - R - 2.d0 - 2.d0*R**2.d0 * cos(latCell)**(-2.d0))
+    B = (2.0*(omega + w)*K / ((R+1.0)*(R+2.0))) * cos(latCell)**R * ((R**2.0 + 2.0*R + 2.0) - ((R+1.0)*cos(latCell))**2.0)
+    C = 0.25 * K**2.0 * cos(latCell)**(2.0*R) * ((R+1.0)*dcos(latCell)**2.0 - R - 2.0)
     
     !
     ! Initialize height field (actually, fluid thickness field)
     !
     do iCell = lbound(state(1)%cell%gd, 1), ubound(state(1)%cell%gd, 1)
-      state(1)%cell%gd(iCell) = ( g * h0                                                &
-                                + radius*radius*aa(iCell)                               &
-                                + radius*radius*bb(iCell) * dcos(    R*lonCell(iCell))  &
-                                + radius*radius*cc(iCell) * dcos(2.0*R*lonCell(iCell)))
+      state(1)%cell%gd(iCell) = ( g * h0                                                     &
+                                + radius * radius * A(iCell)                                 &
+                                + radius * radius * B(iCell) * dcos(    R * lonCell(iCell))  &
+                                + radius * radius * C(iCell) * dcos(2.0*R * lonCell(iCell)))
     end do
     
     static%cell%ghs = 0.d0
+    !
+    ! Initialize vorticity on the cells.
+    !
+    state(1)%cell%pv  = ( fCell + 2 * w * sin(latCell) - K * sin(latCell) * cos(latCell)**R * (R**2 + 3 * R + 2) * cos(R * lonCell) ) / state(1)%cell%gd
 
   end subroutine rossby_haurwitz_wave_test_set_initial_condition
 

@@ -14,6 +14,7 @@ module tend_mod
 
   type tend_on_cell_type
     real(real_kind), allocatable :: gd(:)
+    real(real_kind), allocatable :: pv(:)
   end type tend_on_cell_type
 
   type tend_on_edge_type
@@ -65,7 +66,8 @@ contains
 
     type(tend_type), intent(out) :: tend
 
-    if (.not. allocated(tend%cell%gd)) allocate(tend%cell%gd(nCells))
+    if (.not. allocated(tend%cell%gd   )) allocate(tend%cell%gd   (nCells))
+    if (.not. allocated(tend%cell%pv   )) allocate(tend%cell%pv   (nCells))
 
     if (.not. allocated(tend%edge%gd   )) allocate(tend%edge%gd   (nEdges))
     if (.not. allocated(tend%edge%u    )) allocate(tend%edge%u    (nEdges))
@@ -79,7 +81,8 @@ contains
 
     type(tend_type), intent(inout) :: tend
 
-    if (allocated(tend%cell%gd)) deallocate(tend%cell%gd)
+    if (allocated(tend%cell%gd   )) deallocate(tend%cell%gd   )
+    if (allocated(tend%cell%pv   )) deallocate(tend%cell%pv   )
 
     if (allocated(tend%edge%gd   )) deallocate(tend%edge%gd   )
     if (allocated(tend%edge%u    )) deallocate(tend%edge%u    )

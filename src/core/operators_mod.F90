@@ -25,6 +25,8 @@ module operators_mod
   public calc_kinetic_energy
   public calc_tangent_wind
   public calc_tangent_vor_flux
+  public calc_vor_on_cell
+  public calc_pv_on_cell
   public calc_pv_on_vertex
   public calc_pv_on_edge
   public add_upwind_correction_on_cell
@@ -259,6 +261,26 @@ contains
 
   end subroutine calc_tangent_vor_flux
 
+  subroutine calc_vor_on_cell(pv_cell, gd_cell, vor_cell)
+
+    real(real_kind), intent(in)  :: pv_cell (:)
+    real(real_kind), intent(in)  :: gd_cell (:)
+    real(real_kind), intent(out) :: vor_cell(:)
+
+    vor_cell = pv_cell * gd_cell - fCell
+
+  end subroutine calc_vor_on_cell
+
+  subroutine calc_pv_on_cell(vor_cell, gd_cell, pv_cell)
+
+    real(real_kind), intent(in)  :: vor_cell(:)
+    real(real_kind), intent(in)  :: gd_cell (:)
+    real(real_kind), intent(out) :: pv_cell (:)
+
+    pv_cell = (fCell + vor_cell) / gd_cell
+
+  end subroutine calc_pv_on_cell
+
   subroutine calc_pv_on_vertex(vor_vertex, gd_vertex, pv_vertex)
 
     real(real_kind), intent(in)  :: vor_vertex(:)
@@ -370,7 +392,7 @@ contains
     real(real_kind) d2fdx2_vertex1, d2fdx2_vertex2 ! 2nd order derivatives
     real(real_kind) d4fdx4_vertex1, d4fdx4_vertex2 ! 4th order derivatives
     
-    integer i, iEdge, iVertex1, iVertex2
+    integer iEdge, iVertex1, iVertex2
     
     pv_edge = weightOnVertex1OnEdge * pv_vertex(verticesOnEdge(1,:)) + weightOnVertex2OnEdge * pv_vertex(verticesOnEdge(2,:))
 

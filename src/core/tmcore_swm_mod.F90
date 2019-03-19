@@ -54,12 +54,9 @@ contains
 
   subroutine tmcore_swm_run()
   
-    call scalar_c2e_interp_operator   (state(old)%cell  %gd , state(old)%edge  %gd                          )
-    call add_upwind_correction_on_cell(state(old)%cell  %gd , state(old)%edge  %iap_u, state(old)%edge%gd   )
-    call iap_swm_operator             (state(old)%edge  %gd , state(old)%edge  %u    , state(old)%edge%iap_u)
-    call scalar_c2v_interp_operator   (state(old)%cell  %gd , state(old)%vertex%gd                          )
-    call curl_operator                (state(old)%edge  %u  , state(old)%vertex%vor                         )
-    call calc_pv_on_vertex            (state(old)%vertex%vor, state(old)%vertex%gd   , state(old)%vertex%pv )
+    call scalar_c2e_interp_operator   (state(old)%cell  %gd, state(old)%edge  %gd                          )
+    call add_upwind_correction_on_cell(state(old)%cell  %gd, state(old)%edge  %iap_u, state(old)%edge%gd   )
+    call iap_swm_operator             (state(old)%edge  %gd, state(old)%edge  %u    , state(old)%edge%iap_u)
 
     call diag_run(state(old), static)
     call history_write(state(old), static)
@@ -68,12 +65,10 @@ contains
     do while (.not. time_is_finished())
       call time_integrate(spatial_operators, update_state)
       call time_advance()
-      call scalar_c2e_interp_operator   (state(old)%cell  %gd , state(old)%edge  %gd                         )
-      call add_upwind_correction_on_cell(state(old)%cell  %gd , state(old)%edge  %iap_u, state(old)%edge  %gd) ! iap_u has the same sign as u
-      call inverse_iap_swm_operator     (state(old)%edge  %gd , state(old)%edge  %iap_u, state(old)%edge  %u )
-      call scalar_c2v_interp_operator   (state(old)%cell  %gd , state(old)%vertex%gd                         )
-      call curl_operator                (state(old)%edge  %u  , state(old)%vertex%vor                        )
-      call calc_pv_on_vertex            (state(old)%vertex%vor, state(old)%vertex%gd   , state(old)%vertex%pv)
+      call scalar_c2e_interp_operator   (state(old)%cell%gd, state(old)%edge%gd                        )
+      call add_upwind_correction_on_cell(state(old)%cell%gd, state(old)%edge%iap_u, state(old)%edge%gd ) ! iap_u has the same sign as u
+      call inverse_iap_swm_operator     (state(old)%edge%gd, state(old)%edge%iap_u, state(old)%edge%u  )
+      call calc_vor_on_cell             (state(old)%cell%pv, state(old)%cell%gd   , state(old)%cell%vor)
       call diag_run(state(old), static)
       if (time_is_alerted('hist0.output')) call history_write(state(old), static)
       call log_step()
@@ -85,24 +80,31 @@ contains
 
     type(state_type), intent(inout) :: state
     type(tend_type),  intent(inout) :: tend
-
-    call scalar_c2e_interp_operator   (state%cell  %gd     , state%edge  %gd                    )
-    call add_upwind_correction_on_cell(state%cell  %gd     , state%edge  %iap_u, state%edge%gd  )
-    call inverse_iap_swm_operator     (state%edge  %gd     , state%edge  %iap_u, state%edge%u   )
-    call calc_gd_tend_on_cell         (state%edge  %u      , state%edge  %gd   , tend %cell%gd  )
-    call scalar_c2e_interp_operator   (tend %cell  %gd     , tend %edge  %gd                    )
-    call add_upwind_correction_on_cell(tend %cell  %gd     , state%edge  %iap_u, tend %edge%gd  )
-    call scalar_c2v_interp_operator   (tend %cell  %gd     , tend %vertex%gd                    )
-    call scalar_c2v_interp_operator   (state%cell  %gd     , state%vertex%gd                    )
-    call curl_operator                (state%edge  %u      , state%vertex%vor                   )
-    call calc_tangent_wind            (state%edge  %u      , state%edge  %v                     )
-    call calc_kinetic_energy          (state%edge  %u      , state%cell  %ke                    )
-    call calc_pv_on_vertex            (state%vertex%vor    , state%vertex%gd   , state%vertex%pv)
-    call scalar_v2c_interp_operator   (state%vertex%pv     , state%cell  %pv                    )
-    call calc_pv_on_edge              (state%edge  %u      , state%edge  %v    , state%edge  %gd  , tend %vertex%gd     , state %vertex%pv  , state%cell%pv   , state%edge%pv)
-    call calc_tangent_vor_flux        (state%edge  %u      , state%edge  %gd   , state%edge  %pv  , state%edge  %pv_flx                                                      )
-    call calc_u_tend_on_edge          (state%edge  %u      , state%cell  %ke   , state%cell  %gd  , state%edge  %gd     , static%cell  %ghs ,                                &
-                                       state%edge  %pv_flx , state%vertex%pv   , tend %cell  %gd  , tend %edge  %gd     , tend  %edge  %u   , tend%edge%iap_u                )
+    !
+    ! Calculate geopotential height tendency.
+    !
+    call scalar_c2e_interp_operator   (state%cell%gd    , state%edge%gd                   )
+    call add_upwind_correction_on_cell(state%cell%gd    , state%edge%iap_u, state%edge%gd )
+    call inverse_iap_swm_operator     (state%edge%gd    , state%edge%iap_u, state%edge%u  )
+    call calc_gd_tend_on_cell         (state%edge%u     , state%edge%gd   , tend %cell%gd )
+    call scalar_c2e_interp_operator   (tend %cell%gd    , tend %edge%gd                   )
+    call add_upwind_correction_on_cell(tend %cell%gd    , state%edge%iap_u, tend %edge%gd )
+    !
+    ! Calculate potential vorticity tendency.
+    !
+    call scalar_c2e_interp_operator   (state%cell%pv    , state%edge%pv                   )
+    call add_upwind_correction_on_cell(state%cell%pv    , state%edge%iap_u, state%edge%pv )
+    call calc_pv_tend_on_cell         (state%edge%u     , state%edge%pv   , state%cell%pv, state%cell%div, tend%cell%pv)
+    !
+    ! Calculate normal velocity tendency.
+    !
+    call calc_tangent_wind            (state%edge%u     , state%edge%v                    )
+    call calc_kinetic_energy          (state%edge%u     , state%cell%ke                   )
+    call scalar_c2e_interp_operator   (state%cell%pv    , state%edge%pv                   )
+    call add_upwind_correction_on_cell(state%cell%pv    , state%edge%iap_u, state%edge%pv )
+    call calc_tangent_vor_flux        (state%edge%u     , state%edge%gd   , state%edge%pv, state%edge%pv_flx)
+    call calc_u_tend_on_edge          (state%edge%u     , state%cell%ke   , state%cell%gd, state%edge%gd, static%cell%ghs, &
+                                       state%edge%pv_flx, tend %cell%gd   , tend %edge%gd, tend %edge%u , tend%edge%iap_u)
 
   end subroutine spatial_operators
 
@@ -121,22 +123,25 @@ contains
 
   end subroutine calc_gd_tend_on_cell
 
-  subroutine calc_vorticity_tend_on_cell(u_edge, vor_edge, vor_tend_cell)
+  subroutine calc_pv_tend_on_cell(u_edge, pv_edge, pv_cell, div_cell, pv_tend_cell)
 
-  real(real_kind), intent(in)  :: u_edge      (:)
-  real(real_kind), intent(in)  :: vor_edge     (:)
-  real(real_kind), intent(out) :: vor_tend_cell(:)
+    real(real_kind), intent(in)  :: u_edge      (:)
+    real(real_kind), intent(in)  :: pv_edge     (:)
+    real(real_kind), intent(in)  :: pv_cell     (:)
+    real(real_kind), intent(out) :: div_cell    (:)
+    real(real_kind), intent(out) :: pv_tend_cell(:)
 
-  real(real_kind) flux(lbound(u_edge, 1):ubound(u_edge, 1))
-  integer iCell
+    real(real_kind) flux(lbound(u_edge, 1):ubound(u_edge, 1))
 
-  flux = u_edge * vor_edge
+    flux = u_edge * pv_edge
   
-  call div_operator(flux, vor_tend_cell)
+    call div_operator(flux, pv_tend_cell)
+    call div_operator(u_edge, div_cell)
+    pv_tend_cell = pv_tend_cell - pv_cell * div_cell
 
-  end subroutine calc_vorticity_tend_on_cell
+  end subroutine calc_pv_tend_on_cell
   
-  subroutine calc_u_tend_on_edge(u_edge, ke_cell, gd_cell, gd_edge, ghs_cell, pv_flx_edge, pv_vertex, gd_tend_cell, gd_tend_edge, u_tend_edge, iap_u_tend_edge)
+  subroutine calc_u_tend_on_edge(u_edge, ke_cell, gd_cell, gd_edge, ghs_cell, pv_flx_edge, gd_tend_cell, gd_tend_edge, u_tend_edge, iap_u_tend_edge)
 
     real(real_kind), intent(in)  :: u_edge         (:)
     real(real_kind), intent(in)  :: ke_cell        (:)
@@ -144,7 +149,6 @@ contains
     real(real_kind), intent(in)  :: gd_edge        (:)
     real(real_kind), intent(in)  :: ghs_cell       (:)
     real(real_kind), intent(in)  :: pv_flx_edge    (:)
-    real(real_kind), intent(in)  :: pv_vertex      (:)
     real(real_kind), intent(in)  :: gd_tend_cell   (:)
     real(real_kind), intent(in)  :: gd_tend_edge   (:)
     real(real_kind), intent(out) :: u_tend_edge    (:)
@@ -152,11 +156,10 @@ contains
 
     real(real_kind) iap_gd_edge(lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
     
-    real(real_kind) E          (lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
+    real(real_kind) E          (lbound(ke_cell, 1):ubound(ke_cell, 1))
     real(real_kind) dEdx       (lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
     
-    real(real_kind) d3fdx3_cell1, &
-                    d3fdx3_cell2
+    real(real_kind) d3fdx3_cell1, d3fdx3_cell2
     
     integer iCell1, iCell2, iEdge
       
@@ -164,7 +167,7 @@ contains
     
     iap_gd_edge = sqrt(gd_edge)
     
-    dEdx  = ( E(cellsOnEdge(2,:)) - E(cellsOnEdge(1,:))) / dcEdge
+    dEdx  = (E(cellsOnEdge(2,:)) - E(cellsOnEdge(1,:))) / dcEdge
     
     if (flux_4th_order_correct)then
       do iEdge = lbound(u_tend_edge, 1), ubound(u_tend_edge, 1)
@@ -195,6 +198,7 @@ contains
 
     new_state%edge%iap_u = old_state%edge%iap_u + dt * tend%edge%iap_u
     new_state%cell%gd    = old_state%cell%gd    + dt * tend%cell%gd
+    new_state%cell%pv    = old_state%cell%pv    + dt * tend%cell%pv
 
   end subroutine update_state
 
@@ -219,7 +223,7 @@ contains
 
     type(state_type), intent(inout) :: state
 
-    state%total_potential_enstropy = sum(state%vertex%gd * state%vertex%pv**2 * areaTriangle)
+    state%total_potential_enstropy = sum(state%cell%gd * state%cell%pv**2 * areaCell)
 
   end subroutine calc_total_potential_enstropy
 
@@ -235,7 +239,7 @@ contains
 
     type(state_type), intent(inout) :: state
 
-    state%total_absolute_vorticity = sum((state%vertex%vor + fVertex) * areaTriangle) / sum(areaTriangle)
+    state%total_absolute_vorticity = sum((state%cell%vor + fCell) * areaCell) / sum(areaCell)
 
   end subroutine calc_total_absolute_vorticity
 

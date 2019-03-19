@@ -87,6 +87,7 @@ contains
 
     call spatial_operators(state(three), tend(three))
 
+    tend(new)%cell%pv    = (tend(one)%cell%pv    + 4.0d0 * tend(two)%cell%pv    + tend(three)%cell%pv   ) / 6.0d0
     tend(new)%cell%gd    = (tend(one)%cell%gd    + 4.0d0 * tend(two)%cell%gd    + tend(three)%cell%gd   ) / 6.0d0
     tend(new)%edge%iap_u = (tend(one)%edge%iap_u + 4.0d0 * tend(two)%edge%iap_u + tend(three)%edge%iap_u) / 6.0d0
     
@@ -120,9 +121,10 @@ contains
     real(real_kind) R4R4, R1R2, R2R3, R3R4, beta
 
     state(one)%cell%gd    = state(old)%cell%gd
+    state(one)%cell%pv    = state(old)%cell%pv
     state(one)%edge%u     = state(old)%edge%u
     state(one)%edge%iap_u = state(old)%edge%iap_u
-    
+
     call spatial_operators(state(one), tend(one))
     call update_state(0.5d0 * dt, tend(one), state(one), state(two))
 
@@ -134,8 +136,9 @@ contains
     
     call spatial_operators(state(four), tend(four))
 
-    tend(new)%cell%gd    = (tend(one)%cell%gd    + 2.0d0 * tend(two)%cell%gd    + 2.0d0 * tend(three)%cell%gd    + tend(four)%cell%gd   ) / 6.d0
-    tend(new)%edge%iap_u = (tend(one)%edge%iap_u + 2.0d0 * tend(two)%edge%iap_u + 2.0d0 * tend(three)%edge%iap_u + tend(four)%edge%iap_u) / 6.d0
+    tend(new)%cell%pv    = (tend(one)%cell%pv    + 2.0d0 * tend(two)%cell%pv    + 2.0d0 * tend(three)%cell%pv    + tend(four)%cell%pv   ) / 6.0d0
+    tend(new)%cell%gd    = (tend(one)%cell%gd    + 2.0d0 * tend(two)%cell%gd    + 2.0d0 * tend(three)%cell%gd    + tend(four)%cell%gd   ) / 6.0d0
+    tend(new)%edge%iap_u = (tend(one)%edge%iap_u + 2.0d0 * tend(two)%edge%iap_u + 2.0d0 * tend(three)%edge%iap_u + tend(four)%edge%iap_u) / 6.0d0
 
     if (conserve_energy) then
       R4R4 = inner_product(tend(new  ), tend(new  ))
