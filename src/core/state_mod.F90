@@ -17,6 +17,7 @@ module state_mod
     real(real_kind), allocatable :: u     (:)
     real(real_kind), allocatable :: v     (:)
     real(real_kind), allocatable :: div   (:)
+    real(real_kind), allocatable :: vor   (:)
     real(real_kind), allocatable :: ke    (:)
     real(real_kind), allocatable :: pv    (:)
     real(real_kind), allocatable :: iap_gh(:)
@@ -87,6 +88,7 @@ contains
     if (.not. allocated(state%cell%u     )) allocate(state%cell%u     (nCells))
     if (.not. allocated(state%cell%v     )) allocate(state%cell%v     (nCells))
     if (.not. allocated(state%cell%div   )) allocate(state%cell%div   (nCells))
+    if (.not. allocated(state%cell%vor   )) allocate(state%cell%vor   (nCells))
     if (.not. allocated(state%cell%ke    )) allocate(state%cell%ke    (nCells))
     if (.not. allocated(state%cell%pv    )) allocate(state%cell%pv    (nCells))
 
@@ -111,6 +113,7 @@ contains
     if (allocated(state%cell%u     )) deallocate(state%cell%u     )
     if (allocated(state%cell%v     )) deallocate(state%cell%v     )
     if (allocated(state%cell%div   )) deallocate(state%cell%div   )
+    if (allocated(state%cell%vor   )) deallocate(state%cell%vor   )
     if (allocated(state%cell%ke    )) deallocate(state%cell%ke    )
     if (allocated(state%cell%pv    )) deallocate(state%cell%pv    )
 
