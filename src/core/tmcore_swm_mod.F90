@@ -102,7 +102,7 @@ contains
     call calc_pv_on_edge              (state%edge  %u      , state%edge  %v    , state%edge  %gd  , tend %vertex%gd     , state %vertex%pv  , state%cell%pv   , state%edge%pv)
     call calc_tangent_vor_flux        (state%edge  %u      , state%edge  %gd   , state%edge  %pv  , state%edge  %pv_flx                                                      )
     call calc_u_tend_on_edge          (state%edge  %u      , state%cell  %ke   , state%cell  %gd  , state%edge  %gd     , static%cell  %ghs ,                                &
-                                       state%edge  %pv_flx , state%vertex%pv   , tend %cell  %gd  , tend %edge  %gd     , tend  %edge  %u   , tend%edge%iap_u                )
+                                       state%edge  %pv_flx , tend %edge  %gd   , tend %edge  %u   , tend %edge  %iap_u                                                       )
 
   end subroutine spatial_operators
 
@@ -136,7 +136,7 @@ contains
 
   end subroutine calc_vorticity_tend_on_cell
   
-  subroutine calc_u_tend_on_edge(u_edge, ke_cell, gd_cell, gd_edge, ghs_cell, pv_flx_edge, pv_vertex, gd_tend_cell, gd_tend_edge, u_tend_edge, iap_u_tend_edge)
+  subroutine calc_u_tend_on_edge(u_edge, ke_cell, gd_cell, gd_edge, ghs_cell, pv_flx_edge, gd_tend_edge, u_tend_edge, iap_u_tend_edge)
 
     real(real_kind), intent(in)  :: u_edge         (:)
     real(real_kind), intent(in)  :: ke_cell        (:)
@@ -144,8 +144,6 @@ contains
     real(real_kind), intent(in)  :: gd_edge        (:)
     real(real_kind), intent(in)  :: ghs_cell       (:)
     real(real_kind), intent(in)  :: pv_flx_edge    (:)
-    real(real_kind), intent(in)  :: pv_vertex      (:)
-    real(real_kind), intent(in)  :: gd_tend_cell   (:)
     real(real_kind), intent(in)  :: gd_tend_edge   (:)
     real(real_kind), intent(out) :: u_tend_edge    (:)
     real(real_kind), intent(out) :: iap_u_tend_edge(:)
