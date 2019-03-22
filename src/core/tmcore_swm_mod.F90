@@ -86,20 +86,29 @@ contains
     type(state_type), intent(inout) :: state
     type(tend_type),  intent(inout) :: tend
 
+    ! Inverse IAP transformation
     call scalar_c2e_interp_operator   (state%cell  %gd     , state%edge  %gd                    )
     call add_upwind_correction_on_cell(state%cell  %gd     , state%edge  %iap_u, state%edge%gd  )
     call inverse_iap_swm_operator     (state%edge  %gd     , state%edge  %iap_u, state%edge%u   )
+    
+    ! Calculate tend of geopotential depth (gd)
     call calc_gd_tend_on_cell         (state%edge  %u      , state%edge  %gd   , tend %cell%gd  )
+    
+    ! Interpolate tend gd to edge and vertex
     call scalar_c2e_interp_operator   (tend %cell  %gd     , tend %edge  %gd                    )
     call add_upwind_correction_on_cell(tend %cell  %gd     , state%edge  %iap_u, tend %edge%gd  )
     call scalar_c2v_interp_operator   (tend %cell  %gd     , tend %vertex%gd                    )
     call scalar_c2v_interp_operator   (state%cell  %gd     , state%vertex%gd                    )
+    
+    ! Calculate potential vorticity to edge
     call curl_operator                (state%edge  %u      , state%vertex%vor                   )
     call calc_tangent_wind            (state%edge  %u      , state%edge  %v                     )
     call calc_kinetic_energy          (state%edge  %u      , state%cell  %ke                    )
     call calc_pv_on_vertex            (state%vertex%vor    , state%vertex%gd   , state%vertex%pv)
     call scalar_v2c_interp_operator   (state%vertex%pv     , state%cell  %pv                    )
     call calc_pv_on_edge              (state%edge  %u      , state%edge  %v    , state%edge  %gd  , tend %vertex%gd     , state %vertex%pv  , state%cell%pv   , state%edge%pv)
+    
+    ! Calculate tend of u and iap_u
     call calc_tangent_vor_flux        (state%edge  %u      , state%edge  %gd   , state%edge  %pv  , state%edge  %pv_flx                                                      )
     call calc_u_tend_on_edge          (state%edge  %u      , state%cell  %ke   , state%cell  %gd  , state%edge  %gd     , static%cell  %ghs ,                                &
                                        state%edge  %pv_flx , tend %edge  %gd   , tend %edge  %u   , tend %edge  %iap_u                                                       )
