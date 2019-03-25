@@ -70,11 +70,11 @@ contains
     integer w, y
     character(10) fmt
 
-    w = merge(decimal_width, 4, present(decimal_width))
+    w = merge(decimal_width, 10, present(decimal_width))
     if (x >= 0) then
-      write(fmt, "('(E', I0, '.', I0, ')')") w, w-6
+      write(fmt, "('(G', I0, '.', I0, ')')") w, w-6
     else
-      write(fmt, "('(E', I0, '.', I0, ')')") w, w-7
+      write(fmt, "('(G', I0, '.', I0, ')')") w, w-7
     end if
     write(res, fmt) x
 

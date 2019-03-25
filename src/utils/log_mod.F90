@@ -6,6 +6,15 @@ module log_mod
 
   implicit none
 
+  private
+
+  public log_init
+  public log_add_diag
+  public log_notice
+  public log_warning
+  public log_error
+  public log_step
+
   type(hash_table_type) diags
 
 contains

@@ -5,6 +5,7 @@ module io_mod
   use params_mod
   use time_mod
   use string_mod
+  use hash_table_mod
 
   implicit none
 
@@ -184,7 +185,7 @@ contains
     if (name_(1:4) == 'hist') then
       dataset%file_prefix_or_path = trim(dataset%file_prefix_or_path) // '.' // trim(string_delete(name_, 'ist'))
     else if (name_ /= 'restart') then
-      dataset%file_prefix_or_path = trim(dataset%file_prefix_or_path) // '.' // trim(name_)
+      dataset%file_prefix_or_path = trim(dataset%file_prefix_or_path)
     end if
     dataset%mode = mode_
 
@@ -213,7 +214,9 @@ contains
       call log_error('Invalid IO period ' // trim(period_) // '!')
     end select
 
-    call time_add_alert(trim(dataset%name) // '.' // trim(dataset%mode), seconds=dataset%period)
+    if (dataset%period /= 0.0) then
+      call time_add_alert(trim(dataset%name) // '.' // trim(dataset%mode), seconds=dataset%period)
+    end if
 
     ! Add alert for create new file.
     if (present(frames_per_file) .and. frames_per_file /= 'N/A') then
@@ -655,7 +658,7 @@ contains
 
     ierr = NF90_OPEN(dataset%file_prefix_or_path, NF90_NOWRITE, dataset%id)
     if (ierr /= NF90_NOERR) then
-      call log_error('Failed to open NetCDF file to input! ' // trim(NF90_STRERROR(ierr)))
+      call log_error('Failed to open NetCDF file ' // trim(dataset%file_prefix_or_path) // ' to input! ' // trim(NF90_STRERROR(ierr)))
     end if
 
   end subroutine io_start_input
@@ -687,13 +690,13 @@ contains
   subroutine io_input_real_2d(name, array, dataset_name)
 
     character(*), intent(in) :: name
-    real, intent(out) :: array(:,:)
+    real(8), intent(out) :: array(:,:)
     character(*), intent(in), optional :: dataset_name
 
     type(dataset_type), pointer :: dataset
     integer lb1, ub1, lb2, ub2
     integer i, j, ierr, varid
-    real, allocatable :: buffer(:,:)
+    real(8), allocatable :: buffer(:,:)
 
     if (present(dataset_name)) then
       dataset => get_dataset(name=dataset_name, mode='input')
