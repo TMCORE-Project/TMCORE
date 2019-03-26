@@ -17,5 +17,6 @@ module const_mod
   real(real_kind_8), parameter :: rad    = pi / 180.0d0
   real(real_kind_8), parameter :: deg    = 180.0d0 / pi
   real(real_kind_8), parameter :: eps    = epsilon(1.0_real_kind)
+  real(real_kind_8), parameter :: missing_value = -1e20
 
 end module const_mod

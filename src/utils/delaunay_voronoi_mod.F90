@@ -146,6 +146,8 @@ contains
     DVT2 => get_DVT(global_DVT_array, idx(2))
     DVT3 => get_DVT(global_DVT_array, idx(3))
 
+    ! Initialize the first eight triangles.
+    call log_notice('Initialize the first eight triangles with selected vertices ' // trim(to_string(idx)) // '.')
     call init_DTs(DVT1, DVT2, DVT3)
     inserted = .false.
     inserted(idx) = .true.
@@ -165,7 +167,6 @@ contains
           call record_included_DVT(DVT1, DT1)
           exit DT_loop
         else if (ret == OUTSIDE_TRIANGLE) then
-          cycle DT_loop
         else if (ret > 0) then
           ! DVT is on some edge of DT ................................... CASE 2
           DT2 => get_DT(DT1%adjDT, ret)
@@ -186,12 +187,7 @@ contains
             ! Replace the link DVT from DVT2 to DVT1 for each incident DT.
             do j = 1, DVT1%incDT%size
               DT2 => get_DT(DVT1%incDT, j)
-              do k = 1, DT2%DVT%size
-                if (associated(DT2%DVT%value_at(k), DVT1)) then
-                  call DT2%DVT%insert_ptr_at(k, DVT1)
-                  exit
-                end if
-              end do
+              call DT2%DVT%replace_ptr(DVT2, DVT1)
             end do
             inserted(i) = .true.
             ! Delete DVT2 from virtual DVT 
@@ -202,7 +198,7 @@ contains
             ! Complain this degenerate case.
             call log_error('DVT ' // trim(to_string(DVT1%id)) // ' coincides to ' // &
                            'DVT ' // trim(to_string(-ret)) // ' of ' // &
-                           'DT ' // trim(to_string(DT1%id)) // '.')
+                           'DT ' // trim(to_string(DT1%id)) // '.', __FILE__, __LINE__)
           end if
         end if
         call iterator%next()
@@ -275,25 +271,30 @@ contains
     type(delaunay_vertex_type), intent(inout) :: DVT2
     type(delaunay_vertex_type), intent(inout) :: DVT3
 
-    type(delaunay_vertex_type) DVT4, DVT5, DVT6
+    type(delaunay_vertex_type) local_DVT
+    type(delaunay_vertex_type), pointer :: DVT4, DVT5, DVT6
     type(delaunay_triangle_type), pointer :: DT
     type(array_type) DVT_array
     type(array_type) DT_array
     real(8) lon, lat
     integer i, j, ret, map(24)
 
+    type(delaunay_vertex_type), pointer :: a
+
     ! Create virtual vertices which are 'antipodal' to the corresponding
     ! vertices of the first three inserted ones.
+    call virtual_DVT_list%append(local_DVT)
+    DVT4 => get_DVT(virtual_DVT_list%last_item)
     call inverse_rotation_transform(DVT1%lon, DVT1%lat, lon, lat, 0.0d0, -pi05)
     call DVT4%init(id=-1, lon=lon, lat=lat)
+    call virtual_DVT_list%append(local_DVT)
+    DVT5 => get_DVT(virtual_DVT_list%last_item)
     call inverse_rotation_transform(DVT2%lon, DVT2%lat, lon, lat, 0.0d0, -pi05)
     call DVT5%init(id=-2, lon=lon, lat=lat)
+    call virtual_DVT_list%append(local_DVT)
+    DVT6 => get_DVT(virtual_DVT_list%last_item)
     call inverse_rotation_transform(DVT3%lon, DVT3%lat, lon, lat, 0.0d0, -pi05)
     call DVT6%init(id=-3, lon=lon, lat=lat)
-
-    call virtual_DVT_list%append(DVT4)
-    call virtual_DVT_list%append(DVT5)
-    call virtual_DVT_list%append(DVT6)
 
     call DVT_array%append_ptr(DVT1)
     call DVT_array%append_ptr(DVT2)
@@ -303,16 +304,14 @@ contains
     call DVT_array%append_ptr(DVT6)
 
     ! Create the first eight triangles.
-    allocate(DT)
     do i = 1, 8
+      call create_DT(DT)
       call DT%init(id=i)
-      call global_DT_list%insert(DT)
-      call DT_array%append_ptr(global_DT_list%last_value())
+      call DT_array%append_ptr(DT)
     end do
-    deallocate(DT)
 
     ! Set neightbors for each triangle.
-    map = [5, 2, 4, 6, 3, 1, 7, 4, 2, 8, 1, 3, 1, 8, 6, 2, 5, 7, 3, 6, 8, 4, 7, 5]
+    map = [5,2,4, 6,3,1, 7,4,2, 8,1,3, 1,8,6, 2,5,7, 3,6,8, 4,7,5]
     j = 1
     do i = 1, 8
       DT => get_DT(DT_array, i)
@@ -324,9 +323,9 @@ contains
     ! Set vertices for each triangle.
     select case (orient(DVT1, DVT2, DVT3))
     case (ORIENT_LEFT)
-      map = [1, 2, 3, 1, 3, 5, 1, 5, 6, 1, 6, 2, 4, 3, 2, 4, 5, 3, 4, 6, 5, 4, 2, 6]
+      map = [1,2,3, 1,3,5, 1,5,6, 1,6,2, 4,3,2, 4,5,3, 4,6,5, 4,2,6]
     case (ORIENT_RIGHT)
-      map = [1, 3, 2, 1, 2, 6, 1, 6, 5, 1, 5, 3, 4, 2, 3, 4, 6, 2, 4, 5, 6, 4, 3, 5]
+      map = [1,3,2, 1,2,6, 1,6,5, 1,5,3, 4,2,3, 4,6,2, 4,5,6, 4,3,5]
     case (ORIENT_ON)
       call log_error('The first three points are collinear.' // &
                      'Change the order of points to ensure the non-collinearity ' // &
@@ -1019,11 +1018,11 @@ contains
     real(8), intent(in), optional :: z
 
     this%id = id
-    if (present(lon)) then
+    if (present(lon) .and. present(lat)) then
       this%lon = lon
       this%lat = lat
       call cartesian_transform(this)
-    else if (present(x)) then
+    else if (present(x) .and. present(y) .and. present(z)) then
       this%x = x
       this%y = y
       this%z = z
@@ -1040,8 +1039,8 @@ contains
     integer i
 
     write(*, *) 'DelaunayVertex (' // trim(to_string(this%id)) // '):'
-    write(*, *) '  LON: ' // trim(to_string(this%lon * deg)) // ' LAT: ' // trim(to_string(this%lat * deg))
-    write(*, *) '  X: ' // trim(to_string(this%x)) // ' Y: ' // trim(to_string(this%y)) // ' Z: ' // trim(to_string(this%z))
+    write(*, *) '  LON: ', this%lon * deg, ' LAT: ', this%lat * deg
+    write(*, *) '  X: ', this%x, ' Y: ', this%y, ' Z: ', this%z
     write(*, '(A)', advance='no') '  Incident triangles: '
     do i = 1, this%incDT%size
       DT => get_DT(this%incDT, i)
@@ -1060,9 +1059,10 @@ contains
 
   end subroutine delaunay_triangle_init
 
-  subroutine delaunay_triangle_print(this)
+  subroutine delaunay_triangle_print(this, details)
 
     class(delaunay_triangle_type), intent(in) :: this
+    logical, intent(in), optional :: details
 
     type(delaunay_vertex_type), pointer :: DVT
     type(delaunay_triangle_type), pointer :: DT
@@ -1076,6 +1076,27 @@ contains
         write(*, '(A)', advance='no') trim(to_string(DVT%id)) // ', '
       end do
       write(*, *)
+      if (present(details) .and. details) then
+        do i = 1, this%DVT%size
+          DVT => get_DVT(this%DVT, i)
+          call DVT%print()
+        end do
+        write(*, *) 'For NCL:'
+        write(*, '(A)', advance='no') '  Lon: (/'
+        do i = 1, this%DVT%size
+          DVT => get_DVT(this%DVT, i)
+          write(*, '(F10.5, ",")', advance='no') DVT%lon * deg
+        end do
+        DVT => get_DVT(this%DVT, 1)
+        write(*, '(F10.5, A)') DVT%lon * deg, '/)'
+        write(*, '(A)', advance='no') '  Lat: (/'
+        do i = 1, this%DVT%size
+          DVT => get_DVT(this%DVT, i)
+          write(*, '(F10.5, ",")', advance='no') DVT%lat * deg
+        end do
+        DVT => get_DVT(this%DVT, 1)
+        write(*, '(F10.5, A)') DVT%lat * deg, '/)'
+      end if
     else
       write(*, *) '  Vertices: Not connected with vertices yet.'
     end if
@@ -1257,7 +1278,7 @@ contains
 
     real(8) det
 
-    det = x0 * (y1*z2 - y2*z1) - y0 * (x1*z2 - x2*z1) + z0 * (x1*y2 - x2*y1)
+    det = x0 * (y1 * z2 - y2 * z1) - y0 * (x1 * z2 - x2 * z1) + z0 * (x1 * y2 - x2 * y1)
 
     if (det > eps) then
       res = ORIENT_LEFT
@@ -1356,7 +1377,7 @@ contains
     do i = 1, DT%DVT%size
       DVT1 => get_DVT(DT%DVT, i)
       if (DVT1%id < 0 .and. abs(DVT1%lon - DVT%lon) < eps .and. abs(DVT1%lat - DVT%lat) < eps) then
-        res = -1
+        res = -i
         return
       end if
       x(i) = DVT1%x; y(i) = DVT1%y; z(i) = DVT1%z
