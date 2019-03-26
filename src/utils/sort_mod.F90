@@ -28,46 +28,8 @@ contains
     ! Array x should be already sorted.
     if (left_idx >= right_idx) return
 
-#ifndef NDEBUG
-    if (size(x) <= 20) then
-      do i = 1, size(x)
-        write(*, '(A)', advance='no') '-----'
-      end do
-      write(*, *)
-      do i = 1, size(x)
-        write(*, '(I5)', advance='no') i
-      end do
-      write(*, *)
-      do i = 1, size(x)
-        if (i >= left_idx .and. i <= right_idx) then
-          write(*, '(I5)', advance='no') x(i)
-        else
-          write(*, '("     ")', advance='no')
-        end if
-      end do
-      write(*, *)
-    end if
-#endif
-
     ! Partition the array so that the left elements are smaller than the right ones.
     part_idx = partition(x, left_idx, right_idx)
-
-#ifndef NDEBUG
-    if (size(x) <= 20) then
-      do i = 1, size(x)
-        if (i >= left_idx .and. i <= right_idx) then
-          write(*, '(I5)', advance='no') x(i)
-        else
-          write(*, '("     ")', advance='no')
-        end if
-      end do
-      write(*, *)
-      do i = 1, part_idx - 1
-        write(*, '("     ")', advance='no')
-      end do
-      write(*, '("    ^")')
-    end if
-#endif
 
     call qsort_integer(x, left_idx, part_idx - 1)
     call qsort_integer(x, part_idx + 1, right_idx)
@@ -126,46 +88,8 @@ contains
     ! Array x should be already sorted.
     if (left_idx >= right_idx) return
 
-#ifndef NDEBUG
-    if (size(x) <= 20) then
-      do i = 1, size(x)
-        write(*, '(A)', advance='no') '--------'
-      end do
-      write(*, *)
-      do i = 1, size(x)
-        write(*, '(I8)', advance='no') i
-      end do
-      write(*, *)
-      do i = 1, size(x)
-        if (i >= left_idx .and. i <= right_idx) then
-          write(*, '(F8.2)', advance='no') x(i)
-        else
-          write(*, '("        ")', advance='no')
-        end if
-      end do
-      write(*, *)
-    end if
-#endif
-
     ! Partition the array so that the left elements are smaller than the right ones.
     part_idx = partition(x, left_idx, right_idx)
-
-#ifndef NDEBUG
-    if (size(x) <= 20) then
-      do i = 1, size(x)
-        if (i >= left_idx .and. i <= right_idx) then
-          write(*, '(F8.2)', advance='no') x(i)
-        else
-          write(*, '("        ")', advance='no')
-        end if
-      end do
-      write(*, *)
-      do i = 1, part_idx - 1
-        write(*, '("        ")', advance='no')
-      end do
-      write(*, '("       ^")')
-    end if
-#endif
 
     call qsort_real(x, left_idx, part_idx)
     call qsort_real(x, part_idx + 1, right_idx)
