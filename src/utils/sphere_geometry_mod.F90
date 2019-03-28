@@ -95,63 +95,63 @@ contains
   ! Rotation transform                                                         !
   ! Purpose:                                                                   !
   !   Calculate the rotating transformation and its inverse of the original    !
-  !   coordinate system (lonO,latO) to the rotated one (lonR, latR) with       !
-  !   the north pole (lonP,latP) defined at the original coordinate system.    !
+  !   coordinate system (lon_o,lat_o) to the rotated one (lon_r, lat_r) with   !
+  !   the north pole (lon_p,lat_p) defined at the original coordinate system.  !
   ! ************************************************************************** !
 
-  subroutine rotation_transform(lonP, latP, lonO, latO, lonR, latR)
+  subroutine rotation_transform(lon_p, lat_p, lon_o, lat_o, lon_r, lat_r)
 
-    real(real_kind), intent(in) :: lonP, latP ! Rotated pole coordinate
-    real(real_kind), intent(in) :: lonO, latO ! Original coordinate
-    real(real_kind), intent(out), optional :: lonR, latR ! Rotated coordinate
+    real(real_kind), intent(in) :: lon_p, lat_p ! Rotated pole coordinate
+    real(real_kind), intent(in) :: lon_o, lat_o ! Original coordinate
+    real(real_kind), intent(out), optional :: lon_r, lat_r ! Rotated coordinate
 
     real(real_kind) tmp1, tmp2, tmp3, dlon
 
-    dlon = lonO - lonP
-    if (present(lonR)) then
-        tmp1 = cos(latO) * sin(dlon)
-        tmp2 = cos(latO) * sin(latP) * cos(dlon) - cos(latP) * sin(latO)
-        lonR = atan2(tmp1, tmp2)
-        if (lonR < 0.0d0) lonR = PI2 + lonR
+    dlon = lon_o - lon_p
+    if (present(lon_r)) then
+        tmp1 = cos(lat_o) * sin(dlon)
+        tmp2 = cos(lat_o) * sin(lat_p) * cos(dlon) - cos(lat_p) * sin(lat_o)
+        lon_r = atan2(tmp1, tmp2)
+        if (lon_r < 0.0d0) lon_r = PI2 + lon_r
     end if
-    if (present(latR)) then
-        tmp1 = sin(latO) * sin(latP)
-        tmp2 = cos(latO) * cos(latP) * cos(dlon)
+    if (present(lat_r)) then
+        tmp1 = sin(lat_o) * sin(lat_p)
+        tmp2 = cos(lat_o) * cos(lat_p) * cos(dlon)
         tmp3 = tmp1 + tmp2
         tmp3 = min(max(tmp3, -1.0d0), 1.0d0)
-        latR = asin(tmp3)
+        lat_r = asin(tmp3)
     end if
 
   end subroutine rotation_transform
 
-  subroutine inverse_rotation_transform(lonP, latP, lonO, latO, lonR, latR)
+  subroutine inverse_rotation_transform(lon_p, lat_p, lon_o, lat_o, lon_r, lat_r)
 
-      real(real_kind), intent(in)  :: lonP, latP ! Rotated pole coordinate
-      real(real_kind), intent(out) :: lonO, latO ! Original coordinate
-      real(real_kind), intent(in)  :: lonR, latR ! Rotated coordinate
+      real(real_kind), intent(in)  :: lon_p, lat_p ! Rotated pole coordinate
+      real(real_kind), intent(out) :: lon_o, lat_o ! Original coordinate
+      real(real_kind), intent(in)  :: lon_r, lat_r ! Rotated coordinate
 
-      real(real_kind) sinLonR, cosLonR, sinLatR, cosLatR, sinLatP, cosLatP
+      real(real_kind) sin_lon_r, cos_lon_r, sin_lat_r, cos_lat_r, sin_lat_p, cos_lat_p
       real(real_kind) tmp1, tmp2, tmp3
 
-      sinLonR = sin(lonR)
-      cosLonR = cos(lonR)
-      sinLatR = sin(latR)
-      cosLatR = cos(latR)
-      sinLatP = sin(latP)
-      cosLatP = cos(LatP)
+      sin_lon_r = sin(lon_r)
+      cos_lon_r = cos(lon_r)
+      sin_lat_r = sin(lat_r)
+      cos_lat_r = cos(lat_r)
+      sin_lat_p = sin(lat_p)
+      cos_lat_p = cos(lat_p)
 
-      tmp1 = cosLatR * sinLonR
-      tmp2 = sinLatR * cosLatP + cosLatR * cosLonR * sinLatP
+      tmp1 = cos_lat_r * sin_lon_r
+      tmp2 = sin_lat_r * cos_lat_p + cos_lat_r * cos_lon_r * sin_lat_p
       ! This trick is due to the inaccuracy of trigonometry calculation.
       if (abs(tmp2) < eps) tmp2 = 0.0d0
-      lonO = atan2(tmp1, tmp2)
-      lonO = lonP + lonO
-      if (lonO > PI2) lonO = lonO - PI2
-      tmp1 = sinLatR * sinLatP
-      tmp2 = cosLatR * cosLatP * cosLonR
+      lon_o = atan2(tmp1, tmp2)
+      lon_o = lon_p + lon_o
+      if (lon_o > PI2) lon_o = lon_o - PI2
+      tmp1 = sin_lat_r * sin_lat_p
+      tmp2 = cos_lat_r * cos_lat_p * cos_lon_r
       tmp3 = tmp1 - tmp2
       tmp3 = min(max(tmp3, -1.0d0), 1.0d0)
-      latO = asin(tmp3)
+      lat_o = asin(tmp3)
 
   end subroutine inverse_rotation_transform
 

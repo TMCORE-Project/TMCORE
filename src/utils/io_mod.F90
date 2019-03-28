@@ -27,9 +27,10 @@ module io_mod
   type dataset_type
     integer :: id = -1
     character(30) name
-    character(256) desc
-    character(256) author
-    character(256) file_prefix_or_path
+    character(256) :: desc = 'N/A'
+    character(256) :: author = 'N/A'
+    character(256) :: file_path = 'N/A'
+    character(256) :: file_prefix = 'N/A'
     character(10) mode
     character(10) :: new_file_alert = 'N/A'
     character(256) last_file_path
@@ -120,31 +121,11 @@ contains
     integer i
     real value
 
-    if (present(name)) then
-      name_ = name
-    else
-      name_ = 'hist0'
-    end if
-    if (present(desc)) then
-      desc_ = desc
-    else
-      desc_ = ''
-    end if
-    if (present(file_prefix)) then
-      file_prefix_ = file_prefix
-    else
-      file_prefix_ = ''
-    end if
-    if (present(file_path)) then
-      file_path_ = file_path
-    else
-      file_path_ = ''
-    end if
-    if (present(mode)) then
-      mode_ = mode
-    else
-      mode_ = 'output'
-    end if
+    name_ = merge(name, 'hist0', present(name))
+    desc_ = merge(desc, '', present(desc))
+    file_prefix_ = merge(file_prefix, '', present(file_prefix))
+    file_path_ = merge(file_path, '', present(file_path))
+    mode_ = merge(mode, 'output', present(mode))
     if (present(period)) then
       period_ = period
     else
@@ -178,14 +159,12 @@ contains
     dataset%dims = hash_table()
     dataset%vars = hash_table()
     if (file_prefix_ /= '' .and. file_path_ == '') then
-      dataset%file_prefix_or_path = file_prefix_
+      dataset%file_prefix = file_prefix_
     else if (file_prefix_ == '' .and. file_path_ /= '') then
-      dataset%file_prefix_or_path = file_path_
+      dataset%file_path = file_path_
     end if
     if (name_(1:4) == 'hist') then
-      dataset%file_prefix_or_path = trim(dataset%file_prefix_or_path) // '.' // trim(string_delete(name_, 'ist'))
-    else if (name_ /= 'restart') then
-      dataset%file_prefix_or_path = trim(dataset%file_prefix_or_path)
+      dataset%file_prefix = trim(dataset%file_prefix) // '.' // trim(string_delete(name_, 'ist'))
     end if
     dataset%mode = mode_
 
@@ -236,7 +215,11 @@ contains
 
     call datasets%insert(trim(dataset%name) // '.' // trim(dataset%mode), dataset)
 
-    call log_notice('Create ' // trim(dataset%mode) // ' dataset ' // trim(dataset%file_prefix_or_path) // '.')
+    if (dataset%file_path /= 'N/A') then
+      call log_notice('Create ' // trim(dataset%mode) // ' dataset ' // trim(dataset%file_path) // '.')
+    else if (dataset%file_prefix /= 'N/A') then
+      call log_notice('Create ' // trim(dataset%mode) // ' dataset ' // trim(dataset%file_prefix) // '.')
+    end if
 
   end subroutine io_create_dataset
 
@@ -417,9 +400,17 @@ contains
     end if
 
     if (present(tag)) then
-      write(file_path, "(A, '.', A, '.', A, '.nc')") trim(dataset%file_prefix_or_path), trim(curr_time_format), tag
+      if (dataset%file_path /= 'N/A') then
+        file_path = trim(dataset%file_path) // '.' // trim(tag)
+      else
+        write(file_path, "(A, '.', A, '.', A, '.nc')") trim(dataset%file_prefix), trim(curr_time_format), tag
+      end if
     else
-      write(file_path, "(A, '.', A, '.nc')") trim(dataset%file_prefix_or_path), trim(curr_time_format)
+      if (dataset%file_path /= 'N/A') then
+        file_path = dataset%file_path
+      else
+        write(file_path, "(A, '.', A, '.nc')") trim(dataset%file_prefix), trim(curr_time_format)
+      end if
     end if
 
     if (dataset%new_file_alert == 'N/A' .or. time_is_alerted(dataset%new_file_alert) .or. dataset%time_step == 0) then
@@ -656,9 +647,9 @@ contains
       dataset => get_dataset(mode='input')
     end if
 
-    ierr = NF90_OPEN(dataset%file_prefix_or_path, NF90_NOWRITE, dataset%id)
+    ierr = NF90_OPEN(dataset%file_path, NF90_NOWRITE, dataset%id)
     if (ierr /= NF90_NOERR) then
-      call log_error('Failed to open NetCDF file ' // trim(dataset%file_prefix_or_path) // ' to input! ' // trim(NF90_STRERROR(ierr)))
+      call log_error('Failed to open NetCDF file ' // trim(dataset%file_path) // ' to input! ' // trim(NF90_STRERROR(ierr)))
     end if
 
   end subroutine io_start_input
@@ -681,7 +672,7 @@ contains
 
     ierr = NF90_GET_ATT(dataset%id, NF90_GLOBAL, name, meta)
     if (ierr /= NF90_NOERR) then
-      call log_error('Failed to get meta "' // trim(name) // '" from file ' // trim(dataset%file_prefix_or_path) // '!')
+      call log_error('Failed to get meta "' // trim(name) // '" from file ' // trim(dataset%file_path) // '!')
     end if
     res = trim(meta)
 
@@ -712,7 +703,7 @@ contains
 
     ierr = NF90_INQ_VARID(dataset%id, name, varid)
     if (ierr /= NF90_NOERR) then
-      call log_error('No variable "' // trim(name) // '" in dataset "' // trim(dataset%file_prefix_or_path) // '"!')
+      call log_error('No variable "' // trim(name) // '" in dataset "' // trim(dataset%file_path) // '"!')
     end if
     ierr = NF90_GET_VAR(dataset%id, varid, buffer)
 

@@ -14,9 +14,9 @@ module delaunay_voronoi_mod
   private
 
   public delaunay_voronoi_init
-  ! public delaunay_voronoi_final
   public delaunay_triangulation
-  ! public voronoi_diagram
+  public delaunay_vertex_type
+  public delaunay_triangle_type
 
   type, extends(point_type) :: delaunay_vertex_type
     integer :: id = -1
@@ -41,6 +41,8 @@ module delaunay_voronoi_mod
     type(linked_list_type) incDVT       ! Included Delaunay vertices
     type(point_type), pointer :: center ! Center of circumcircle
     real(8) radius
+    ! For quick remove.
+    type(linked_list_item_type), pointer :: stub
   contains
     procedure :: init => delaunay_triangle_init
     procedure :: print => delaunay_triangle_print
@@ -95,6 +97,16 @@ module delaunay_voronoi_mod
     module procedure in_circle3
   end interface in_circle
 
+  interface
+    subroutine output_interface(DVT_array, DT_list, tag)
+      import array_type
+      import linked_list_type
+      type(array_type), intent(in) :: DVT_array
+      type(linked_list_type), intent(in) :: DT_list
+      character(*), intent(in), optional :: tag
+    end subroutine output_interface
+  end interface
+
 contains
 
   subroutine delaunay_voronoi_init(num_point, lon, lat, x, y, z)
@@ -133,7 +145,9 @@ contains
 
   end subroutine delaunay_voronoi_init
 
-  subroutine delaunay_triangulation()
+  subroutine delaunay_triangulation(output)
+
+    procedure(output_interface) output
 
     integer i, j, k, ret, idx(3)
     type(delaunay_vertex_type), pointer :: DVT1, DVT2, DVT3
@@ -207,6 +221,8 @@ contains
       end do DT_loop
     end do DVT_loop
 
+    call output(global_DVT_array, global_DT_list, '0')
+
     ! Insert the rest vertices one at a time.
     do i = 1, global_DVT_array%size
       if (inserted(i)) cycle
@@ -226,8 +242,13 @@ contains
         call DT_iterator%next()
       end do
       ! Delete obsolete and temporal triangles
+      print *, global_DT_list%size
       call delete_obsolete_DT()
+      print *, global_DT_list%size
+      stop
       call delete_temporal_DT()
+
+      call output(global_DVT_array, global_DT_list, to_string(i))
     end do
 
     ! Extract the full list of incident DTs and link DVTs.
@@ -534,10 +555,10 @@ contains
       ! Recursively validate the two newer DT.
       call validate_DT(newerDT1)
       call validate_DT(newerDT2)
-      call tmpDT_list%append_ptr(newDT)
+      call record_temporal_DT(newDT)
       call newDT%subDT%append_ptr(newerDT1)
       call newDT%subDT%append_ptr(newerDT2)
-      call obsDT_list%append_ptr(opsDT)
+      call record_obsolete_DT(opsDT)
       call opsDT%subDT%append_ptr(newerDT1)
       call opsDT%subDT%append_ptr(newerDT2)
     case (ON_CIRCLE)
@@ -991,12 +1012,12 @@ contains
     type(linked_list_iterator_type) iterator
 
     iterator = linked_list_iterator(obsDT_list)
-    do while (iterator%ended())
+    do while (.not. iterator%ended())
       select type (DT => iterator%value)
       type is (delaunay_triangle_type)
-        deallocate(DT)
+        call global_DT_list%remove_item(DT%stub)
+        call obsDT_list%delete_and_next(iterator)
       end select
-      call iterator%next()
     end do
 
   end subroutine delete_obsolete_DT
@@ -1014,12 +1035,11 @@ contains
     type(linked_list_iterator_type) iterator
 
     iterator = linked_list_iterator(tmpDT_list)
-    do while (iterator%ended())
+    do while (.not. iterator%ended())
       select type (DT => iterator%value)
       type is (delaunay_triangle_type)
-        deallocate(DT)
+        call tmpDT_list%delete_and_next(iterator)
       end select
-      call iterator%next()
     end do
 
   end subroutine delete_temporal_DT
@@ -1213,6 +1233,7 @@ contains
     select type (val => global_DT_list%last_value())
     type is (delaunay_triangle_type)
       DT => val
+      DT%stub => global_DT_list%last_item
     end select
 
   end subroutine create_DT
