@@ -199,14 +199,13 @@ contains
             ! The vertex is virtual ................................... CASE 3-1
             ! It is ok, just replace it with DVT1.
             call extract_incident_DT_and_linked_DVT(DVT2)
-            ! Replace the link DVT from DVT2 to DVT1 for each incident DT.
+            ! Replace the DVT from DVT2 to DVT1 for each incident DT.
             do j = 1, DVT2%incDT%size
               DT2 => get_DT(DVT2%incDT, j)
               call DT2%DVT%replace_ptr(DVT2, DVT1)
             end do
             ! Copy the first incident DT and link DVT from DVT2 to DVT1.
             call add_incident_DT(DVT1, get_DT(DVT2%incDT, 1))
-            call add_link_DVT(DVT1, get_DVT(DVT2%linkDVT, 1))
             inserted(i) = .true.
             ! Delete DVT2 from virtual DVT 
             call virtual_DVT_list%delete_ptr(DVT2)
@@ -252,6 +251,7 @@ contains
       call delete_obsolete_DT()
       call delete_temporal_DT()
     end do
+
     call output(global_DVT_array, global_DT_list)
 
     ! Extract the full list of incident DTs and link DVTs.
@@ -405,7 +405,7 @@ contains
         if (associated(linkDVT1, DVT)) then
           ! linkDVT is the target DVT, so shift to the next DVT.
           linkDVT1 => get_DVT(incDT1%DVT, ip1(i))
-          if (DVT%linkDVT%size == 0) then
+          if (.not. associated(linkDVT0)) then
             ! Record the first one.
             linkDVT0 => linkDVT1
           else if (associated(linkDVT1, linkDVT0)) then
@@ -457,73 +457,72 @@ contains
 
     type(delaunay_vertex_type), intent(inout), target :: DVT
 
-    type(linked_list_iterator_type) incDT_iterator, linkDVT_iterator
-    type(linked_list_item_type), pointer :: linkDVT_item
+    type(linked_list_item_type), pointer :: incDT_item
+    type(linked_list_item_type), pointer :: linkDVT_item1, linkDVT_item2
     type(delaunay_triangle_type), pointer :: DT1, DT2, DT3, newDT1, newDT2
     type(delaunay_vertex_type), pointer :: DVT1, DVT2, DVT3, DVT4
     integer i, j, k
     logical empty
 
-    incDT_iterator = linked_list_iterator(DVT%incDT)
-    linkDVT_iterator = linked_list_iterator(DVT%linkDVT)
+    ! Delete incident DTs to three ones.
+    incDT_item => DVT%incDT%first_item
+    linkDVT_item1 => DVT%linkDVT%first_item
     do while (DVT%incDT%size > 3)
-      DT1 => get_DT(incDT_iterator)
-      DT2 => get_DT(incDT_iterator%next_item)
-      DVT1 => get_DVT(linkDVT_iterator)
-      DVT2 => get_DVT(linkDVT_iterator%next_item)
-      DVT3 => get_DVT(linkDVT_iterator%next_item%next)
+      DT1 => get_DT(incDT_item)
+      DT2 => get_DT(incDT_item%next)
+      DVT1 => get_DVT(linkDVT_item1)
+      DVT2 => get_DVT(linkDVT_item1%next)
+      DVT3 => get_DVT(linkDVT_item1%next%next)
       ! Check 1: Is potential DT convex?
       if (orient(DVT1, DVT2, DVT3) == ORIENT_RIGHT) then
-        call incDT_iterator%next()
-        call linkDVT_iterator%next()
+        incDT_item => incDT_item%next
+        linkDVT_item1 => linkDVT_item1%next
         cycle ! NOT PASS
       end if
       ! Check 2: Does potential DT contain DVT?
       if (orient(DVT3, DVT1, DVT) == ORIENT_LEFT) then
-        call incDT_iterator%next()
-        call linkDVT_iterator%next()
+        incDT_item => incDT_item%next
+        linkDVT_item1 => linkDVT_item1%next
         cycle ! NOT PASS
       end if
       ! Check 3: Does potential DT satisfy empty-circumcircle rule?
-      empty = .false.
-      linkDVT_item => linkDVT_iterator%next_item%next%next
+      empty = .true.
+      linkDVT_item2 => linkDVT_item1%next%next%next
       do i = 1, DVT%incDT%size - 3
-        DVT4 => get_DVT(linkDVT_item)
+        DVT4 => get_DVT(linkDVT_item2)
         select case (in_circle(DVT1, DVT2, DVT3, DVT4))
         case (INSIDE_CIRCLE)
           empty = .false.
           exit
         case (ON_CIRCLE)
-          call log_warning('Encounter cocircular vertices.', __FILE__, __LINE__)
+          ! call log_warning('Encounter cocircular vertices.', __FILE__, __LINE__)
         end select
-        linkDVT_item => linkDVT_item%next
+        linkDVT_item2 => linkDVT_item2%next
       end do
       if (.not. empty) then
-        call incDT_iterator%next()
-        call linkDVT_iterator%next()
+        incDT_item => incDT_item%next
+        linkDVT_item1 => linkDVT_item1%next
         cycle ! NOT PASS
       end if
       ! So far, the potential DT is a real DT.
       i = DT1%DVT%index_ptr(DVT)
       j = DT2%DVT%index_ptr(DVT)
       call flip22(DT1, DT2, newDT1, newDT2, [im1(i), i, ip1(i), im1(j)])
-      call global_DT_list%remove_item(incDT_iterator%item)
-      call global_DT_list%remove_item(incDT_iterator%next_item)
+      call global_DT_list%remove_item(DT1%stub)
+      call global_DT_list%remove_item(DT2%stub)
     end do
 
+    ! Do the final flip31.
     DT1 => get_DT(DVT%incDT%first_item)
     DT2 => get_DT(DVT%incDT%first_item%next)
     DT3 => get_DT(DVT%incDT%first_item%next%next)
-    DVT1 => get_DVT(DVT%linkDVT%first_item)
-    DVT2 => get_DVT(DVT%linkDVT%first_item%next)
-    DVT3 => get_DVT(DVT%linkDVT%first_item%next%next)
     i = DT1%DVT%index_ptr(DVT)
     j = DT2%DVT%index_ptr(DVT)
     k = DT3%DVT%index_ptr(DVT)
     call flip31(DT1, DT2, DT3, newDT1, [ip1(i), im1(i), i, j, k])
-    call global_DT_list%remove_item(DVT%incDT%first_item)
-    call global_DT_list%remove_item(DVT%incDT%first_item%next)
-    call global_DT_list%remove_item(DVT%incDT%first_item%next%next)
+    call global_DT_list%remove_item(DT1%stub)
+    call global_DT_list%remove_item(DT2%stub)
+    call global_DT_list%remove_item(DT3%stub)
 
   end subroutine delete_DVT
 
@@ -856,7 +855,7 @@ contains
     ! Make change to the old triangle's adjDTs and DVTs.
     call adjDT1%adjDT%replace_ptr(oldDT1, newDT)
     call adjDT2%adjDT%replace_ptr(oldDT2, newDT)
-    call adjDT3%adjDT%replace_ptr(oldDT1, newDT)
+    call adjDT3%adjDT%replace_ptr(oldDT3, newDT)
     ! This should be called after the full list of incident DTs
     ! has been extracted. (Called in delete_DVT).
     call merge_incident_DT(DVT1, oldDT1, oldDT3, newDT)
