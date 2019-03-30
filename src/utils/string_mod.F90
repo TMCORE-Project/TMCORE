@@ -11,6 +11,7 @@ module string_mod
 
   interface to_string
     module procedure integer_to_string
+    module procedure integer_to_string_with_pad
     module procedure integer_array_to_string
     module procedure real4_to_string
     module procedure real8_to_string
@@ -26,10 +27,23 @@ contains
 
     character(range(x)+2) tmp
 
-    write(tmp, '(i0)') x
+    write(tmp, '(I0)') x
     res = tmp
 
   end function integer_to_string
+
+  function integer_to_string_with_pad(x, left_pad) result(res)
+
+    integer, intent(in) :: x
+    integer, intent(in) :: left_pad
+    character(:), allocatable :: res
+
+    character(left_pad) tmp
+
+    write(tmp, '(I0.' // to_string(left_pad) // ')') x
+    res = tmp
+
+  end function integer_to_string_with_pad
 
   function integer_array_to_string(x) result(res)
 
@@ -51,7 +65,7 @@ contains
     integer, intent(in), optional :: decimal_width
     character(range(x)+2) res
 
-    integer w, y
+    integer w
     character(10) fmt
     character(range(x)+2) tmp
 
@@ -67,7 +81,7 @@ contains
     integer, intent(in), optional :: decimal_width
     character(range(x)+2) res
 
-    integer w, y
+    integer w
     character(10) fmt
 
     w = merge(decimal_width, 10, present(decimal_width))

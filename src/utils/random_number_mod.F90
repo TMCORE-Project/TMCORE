@@ -13,6 +13,7 @@ module random_number_mod
   interface random_number_get
     module procedure random_number_get_double
     module procedure random_number_get_integer
+    module procedure random_number_get_integer_array
   end interface random_number_get
 
 contains
@@ -37,27 +38,39 @@ contains
     real(8), intent(out) :: r
 
     call random_number(r)
-    r = (r*(b - a)) + a
+    r = (r * (b - a)) + a
 
   end subroutine random_number_get_double
 
   subroutine random_number_get_integer(a, b, r)
 
     integer, intent(in) :: a, b
-    integer, intent(out) :: r(:)
+    integer, intent(out) :: r
 
-    integer dimSize(1), i
-    real, allocatable :: rand(:)
-
-    dimSize = shape(r)
-
-    allocate (rand(dimSize(1)))
+    real rand
 
     call random_number(rand)
-    do i = 1, dimSize(1)
-      r(i) = int(rand(i)*(b + 1 - a)) + a
-    end do
+    r = int(rand * (b + 1 - a)) + a
 
   end subroutine random_number_get_integer
+
+  subroutine random_number_get_integer_array(a, b, r)
+
+    integer, intent(in) :: a, b
+    integer, intent(out) :: r(:)
+
+    integer i
+    real, allocatable :: rand(:)
+
+    allocate(rand(size(r)))
+
+    call random_number(rand)
+    do i = 1, size(r)
+      r(i) = int(rand(i) * (b + 1 - a)) + a
+    end do
+
+    deallocate(rand)
+
+  end subroutine random_number_get_integer_array
 
 end module random_number_mod

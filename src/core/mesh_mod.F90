@@ -73,7 +73,7 @@ contains
 
     integer ncid, ierr
     integer dimid, varid
-    integer iCell, iEdge, iVertex, i
+    integer iCell, iVertex, i
     logical file_exist
 
     inquire(file=mesh_file_path, exist=file_exist)

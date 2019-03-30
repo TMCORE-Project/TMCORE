@@ -38,7 +38,6 @@ contains
     real(8), allocatable :: lon(:)
     real(8), allocatable :: lat(:)
     integer, allocatable :: idx(:,:)
-    class(*), pointer :: DVT, DT
     type(linked_list_iterator_type) iterator
 
     allocate(lon(DVT_array%size))

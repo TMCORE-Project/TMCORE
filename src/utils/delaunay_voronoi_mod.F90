@@ -45,6 +45,8 @@ module delaunay_voronoi_mod
     type(linked_list_item_type), pointer :: stub
   contains
     procedure :: init => delaunay_triangle_init
+    procedure :: add_DVT => delaunay_triangle_add_DVT
+    procedure :: add_adjDT => delaunay_triangle_add_adjDT
     procedure :: print => delaunay_triangle_print
   end type delaunay_triangle_type
 
@@ -107,6 +109,9 @@ module delaunay_voronoi_mod
     end subroutine output_interface
   end interface
 
+  ! For tagging DT.
+  integer :: id_DT = 0
+
 contains
 
   subroutine delaunay_voronoi_init(num_point, lon, lat, x, y, z)
@@ -149,11 +154,13 @@ contains
 
     procedure(output_interface) output
 
-    integer i, j, k, ret, idx(3)
+    integer i, j, ret, idx(3)
     type(delaunay_vertex_type), pointer :: DVT1, DVT2, DVT3
     type(delaunay_triangle_type), pointer :: DT1, DT2
     type(linked_list_iterator_type) DVT_iterator, DT_iterator
     logical inserted(global_DVT_array%size), found
+
+    inserted = .false.
 
     call get_three_DVT_indices(idx)
     idx = [5594,       10265,       37780]
@@ -164,7 +171,6 @@ contains
     ! Initialize the first eight triangles.
     call log_notice('Initialize the first eight triangles with selected vertices ' // trim(to_string(idx)) // '.')
     call init_DTs(DVT1, DVT2, DVT3)
-    inserted = .false.
     inserted(idx) = .true.
 
     ! Initialize the point-in-triangle relation between the rest vertices.
@@ -177,16 +183,12 @@ contains
         ret = in_triangle_relaxed(DT1, DVT1)
         if (ret == INSIDE_TRIANGLE) then
           ! DVT is included in some DT .................................. CASE 1
-          DVT1%cntDT1 => DT1
-          DVT1%cntDT2 => null()
           call record_included_DVT(DVT1, DT1)
           exit DT_loop
         else if (ret == OUTSIDE_TRIANGLE) then
         else if (ret > 0) then
           ! DVT is on some edge of DT ................................... CASE 2
           DT2 => get_DT(DT1%adjDT, ret)
-          DVT1%cntDT1 => DT1
-          DVT1%cntDT2 => DT2
           DVT1%edge_idx = ret
           call record_included_DVT(DVT1, DT1, DT2)
           exit DT_loop
@@ -221,11 +223,12 @@ contains
       end do DT_loop
     end do DVT_loop
 
-    call output(global_DVT_array, global_DT_list, '0')
+    call output(global_DVT_array, global_DT_list, '00000')
 
     ! Insert the rest vertices one at a time.
     do i = 1, global_DVT_array%size
       if (inserted(i)) cycle
+      inserted(i) = .true.
       DVT1 => get_DVT(global_DVT_array, i)
       ! Update the Delauny triangulation.
       call insert_DVT(DVT1)
@@ -237,19 +240,19 @@ contains
         do while (.not. DVT_iterator%ended())
           DVT2 => get_DVT(DVT_iterator)
           call update_point_in_triangle(DVT2, DT1, found)
+          if (.not. found) then
+            call log_error('Failed to update DVT (' // trim(to_string(DVT2%id)) // &
+              ') after delete DT (' // trim(to_string(DT1%id)) // '!')
+          end if
           call DVT_iterator%next()
         end do
         call DT_iterator%next()
       end do
       ! Delete obsolete and temporal triangles
-      print *, global_DT_list%size
       call delete_obsolete_DT()
-      print *, global_DT_list%size
-      stop
       call delete_temporal_DT()
-
-      call output(global_DVT_array, global_DT_list, to_string(i))
     end do
+    call output(global_DVT_array, global_DT_list)
 
     ! Extract the full list of incident DTs and link DVTs.
     do i = 1, global_DVT_array%size
@@ -302,9 +305,7 @@ contains
     type(array_type) DVT_array
     type(array_type) DT_array
     real(8) lon, lat
-    integer i, j, ret, map(24)
-
-    type(delaunay_vertex_type), pointer :: a
+    integer i, j, map(24)
 
     ! Create virtual vertices which are 'antipodal' to the corresponding
     ! vertices of the first three inserted ones.
@@ -340,9 +341,8 @@ contains
     j = 1
     do i = 1, 8
       DT => get_DT(DT_array, i)
-      call DT%adjDT%append_ptr(get_DT(DT_array, map(j))); j = j + 1
-      call DT%adjDT%append_ptr(get_DT(DT_array, map(j))); j = j + 1
-      call DT%adjDT%append_ptr(get_DT(DT_array, map(j))); j = j + 1
+      call DT%add_adjDT(get_DT(DT_array, map(j)), get_DT(DT_array, map(j+1)), get_DT(DT_array, map(j+2)))
+      j = j + 3
     end do
 
     ! Set vertices for each triangle.
@@ -361,9 +361,8 @@ contains
     j = 1
     do i = 1, 8
       DT => get_DT(DT_array, i)
-      call DT%DVT%append_ptr(get_DVT(DVT_array, map(j))); j = j + 1
-      call DT%DVT%append_ptr(get_DVT(DVT_array, map(j))); j = j + 1
-      call DT%DVT%append_ptr(get_DVT(DVT_array, map(j))); j = j + 1
+      call DT%add_DVT(get_DVT(DVT_array, map(j)), get_DVT(DVT_array, map(j+1)), get_DVT(DVT_array, map(j+2)))
+      j = j + 3
     end do
 
     ! Set one incident triangle for each vertex.
@@ -390,24 +389,29 @@ contains
 
     type(delaunay_vertex_type), intent(inout), target :: DVT
 
-    type(delaunay_triangle_type), pointer :: incDT
+    type(delaunay_triangle_type), pointer :: incDT0, incDT1
     type(delaunay_vertex_type), pointer :: linkDVT0, linkDVT1
 
     integer i
 
-    incDT => get_DT(DVT%incDT, 1)
+    ! Get the first incident DT which should be set already.
+    incDT1 => get_DT(DVT%incDT, 1)
+    incDT0 => incDT1
     linkDVT0 => null()
     incident_DT_loop: do
-      ! Get the linked DVT
+      ! Loop each DVT of incident DT.
       DVT_loop: do i = 1, 3
-        linkDVT1 => get_DVT(incDT%DVT, i)
+        linkDVT1 => get_DVT(incDT1%DVT, i)
         if (associated(linkDVT1, DVT)) then
           ! linkDVT is the target DVT, so shift to the next DVT.
-          linkDVT1 => get_DVT(incDT%DVT, ip1(i))
+          linkDVT1 => get_DVT(incDT1%DVT, ip1(i))
           if (DVT%linkDVT%size == 0) then
+            ! Record the first one.
             linkDVT0 => linkDVT1
           else if (associated(linkDVT1, linkDVT0)) then
             ! The ring has formed.
+            call DVT%linkDVT%cycle()
+            call DVT%incDT%cycle()
             exit incident_DT_loop
           end if
           call DVT%linkDVT%append_ptr(linkDVT1)
@@ -415,8 +419,9 @@ contains
         end if
       end do DVT_loop
       ! Shift to next incident DT.
-      incDT => get_DT(incDT%adjDT, ip1(i))
-      call add_incident_DT(DVT, incDT)
+      incDT1 => get_DT(incDT1%adjDT, ip1(i))
+      ! Avoid add duplicated incident DT.
+      if (.not. associated(incDT1, incDT0)) call add_incident_DT(DVT, incDT1)
     end do incident_DT_loop
 
   end subroutine extract_incident_DT_and_linked_DVT
@@ -431,12 +436,6 @@ contains
   subroutine insert_DVT(DVT)
 
     type(delaunay_vertex_type), intent(inout), target :: DVT
-
-    type(delaunay_vertex_type), pointer :: DVT1, DVT2, DVT3, DVT4
-    type(delaunay_triangle_type), pointer :: oldDT1, oldDT2, DT
-    type(delaunay_triangle_type), pointer :: adjDT1, adjDT2, adjDT3, adjDT4
-    type(delaunay_triangle_type), pointer :: newDT1, newDT2, newDT3, newDT4
-    integer i, j, idx
 
     if (associated(DVT%cntDT2)) then
       ! DVT is on the edge shared by two adjacent triangles.
@@ -534,7 +533,7 @@ contains
 
     type(delaunay_triangle_type), pointer :: opsDT, newerDT1, newerDT2
     type(delaunay_vertex_type), pointer :: opsDVT
-    integer i, ret
+    integer i
 
     ! Assume 3rd adjDT is the existing DT.
     opsDT => get_DT(newDT%adjDT, 3)
@@ -562,7 +561,7 @@ contains
       call opsDT%subDT%append_ptr(newerDT1)
       call opsDT%subDT%append_ptr(newerDT2)
     case (ON_CIRCLE)
-      call log_warning('Encounter cocircular vertices!', __FILE__, __LINE__)
+      ! call log_warning('Encounter cocircular vertices!', __FILE__, __LINE__)
     end select
 
   end subroutine validate_DT
@@ -574,14 +573,14 @@ contains
     logical, intent(inout) :: found
 
     type(delaunay_vertex_type), pointer :: DVT1, DVT2, DVT3
-    type(delaunay_triangle_type), pointer :: subDT
-    integer i, ret, on_plane(2)
+    type(delaunay_triangle_type), pointer :: DT1
+    integer i, on_plane(2)
 
     if (DT%subDT%size > 0) then
       ! DT has been subdivided, go to next level ....................... ENTRY 1
       do i = 1, DT%subDT%size
-        subDT => get_DT(DT%subDT, i)
-        call update_point_in_triangle(DVT, subDT, found)
+        DT1 => get_DT(DT%subDT, i)
+        call update_point_in_triangle(DVT, DT1, found)
         if (found) return
       end do
     else
@@ -615,20 +614,19 @@ contains
         call delete_included_DVT(DVT, DVT%cntDT1)
       end if
       if (on_plane(1) == 0 .and. on_plane(2) == 0) then
-        DVT%cntDT1 => DT
-        DVT%cntDT2 => null()
+        call record_included_DVT(DVT, DT)
       else if (on_plane(1) == 2 .and. on_plane(2) == 0) then
-        DVT%cntDT1 => DT
-        DVT%cntDT2 => get_DT(DT%adjDT, 2)
         DVT%edge_idx = on_plane(1)
-        call record_included_DVT(DVT, DT, DVT%cntDT2)
+        DT1 => get_DT(DT%adjDT, 2)
+        call record_included_DVT(DVT, DT, DT1)
       else if (on_plane(1) == 0 .and. on_plane(2) == 1) then
-        DVT%cntDT1 => DT
-        DVT%cntDT2 => get_DT(DT%adjDT, 1)
         DVT%edge_idx = on_plane(2)
-        call record_included_DVT(DVT, DT, DVT%cntDT2)
+        DT1 => get_DT(DT%adjDT, 1)
+        call record_included_DVT(DVT, DT, DT1)
       else
-        call log_error('DVT ' // trim(to_string(DVT%id)) // ' coincides with vertex 3 of DT ' // trim(to_string(DT%id)) // '!')
+        call log_error('DVT ' // trim(to_string(DVT%id)) // &
+          ' coincides with vertex 3 of DT ' // trim(to_string(DT%id)) // '!', &
+          __FILE__, __LINE__)
       end if
     end if
 
@@ -661,33 +659,21 @@ contains
     call create_DT(newDT2)
     call create_DT(newDT3)
     ! Set up the topology of the three triangles.
-    call newDT1%DVT%append_ptr(DVT1)
-    call newDT1%DVT%append_ptr(DVT2)
-    call newDT1%DVT%append_ptr(DVT)
-    call newDT1%adjDT%append_ptr(newDT2)
-    call newDT1%adjDT%append_ptr(newDT3)
-    call newDT1%adjDT%append_ptr(adjDT1)
-    call newDT2%DVT%append_ptr(DVT2)
-    call newDT2%DVT%append_ptr(DVT3)
-    call newDT2%DVT%append_ptr(DVT)
-    call newDT2%adjDT%append_ptr(newDT3)
-    call newDT2%adjDT%append_ptr(newDT1)
-    call newDT2%adjDT%append_ptr(adjDT2)
-    call newDT3%DVT%append_ptr(DVT3)
-    call newDT3%DVT%append_ptr(DVT1)
-    call newDT3%DVT%append_ptr(DVT)
-    call newDT3%adjDT%append_ptr(newDT1)
-    call newDT3%adjDT%append_ptr(newDT2)
-    call newDT3%adjDT%append_ptr(adjDT3)
+    call newDT1%add_DVT(DVT1, DVT2, DVT)
+    call newDT1%add_adjDT(newDT2, newDT3, adjDT1)
+    call newDT2%add_DVT(DVT2, DVT3, DVT)
+    call newDT2%add_adjDT(newDT3, newDT1, adjDT2)
+    call newDT3%add_DVT(DVT3, DVT1, DVT)
+    call newDT3%add_adjDT(newDT1, newDT2, adjDT3)
     ! Link the newly inserted DVT to one of its incident DT
     call add_incident_DT(DVT, newDT1)
     ! Make change to the old triangle's adjDT.
     call adjDT1%adjDT%replace_ptr(oldDT, newDT1)
     call adjDT2%adjDT%replace_ptr(oldDT, newDT2)
     call adjDT3%adjDT%replace_ptr(oldDT, newDT3)
-    call DVT1%incDT%replace_ptr(oldDT, newDT1)
-    call DVT2%incDT%replace_ptr(oldDT, newDT2)
-    call DVT3%incDT%replace_ptr(oldDT, newDT3)
+    call DVT1%incDT%replace_ptr(oldDT, newDT1, fatal=.false.)
+    call DVT2%incDT%replace_ptr(oldDT, newDT2, fatal=.false.)
+    call DVT3%incDT%replace_ptr(oldDT, newDT3, fatal=.false.)
     ! Validate the three triangles.
     call validate_DT(newDT1)
     call validate_DT(newDT2)
@@ -698,7 +684,6 @@ contains
     call oldDT%subDT%append_ptr(newDT2)
     call oldDT%subDT%append_ptr(newDT3)
     ! Remove DVT from point-in-triangle relation.
-    DVT%cntDT1 => null()
     call delete_included_DVT(DVT, oldDT)
 
   end subroutine flip13
@@ -732,31 +717,15 @@ contains
     call create_DT(newDT4)
     ! Set up the topology of the four triangles
     ! For oldDT1's newDTs
-    call newDT1%DVT%append_ptr(DVT3)
-    call newDT1%DVT%append_ptr(DVT1)
-    call newDT1%DVT%append_ptr(DVT)
-    call newDT1%adjDT%append_ptr(newDT2)
-    call newDT1%adjDT%append_ptr(newDT4)
-    call newDT1%adjDT%append_ptr(adjDT1)
-    call newDT2%DVT%append_ptr(DVT1)
-    call newDT2%DVT%append_ptr(DVT2)
-    call newDT2%DVT%append_ptr(DVT)
-    call newDT2%adjDT%append_ptr(newDT3)
-    call newDT2%adjDT%append_ptr(newDT1)
-    call newDT2%adjDT%append_ptr(adjDT2)
+    call newDT1%add_DVT(DVT3, DVT1, DVT)
+    call newDT1%add_adjDT(newDT2, newDT4, adjDT1)
+    call newDT2%add_DVT(DVT1, DVT2, DVT)
+    call newDT2%add_adjDT(newDT3, newDT1, adjDT2)
     ! For oldDT2's newDTs
-    call newDT3%DVT%append_ptr(DVT2)
-    call newDT3%DVT%append_ptr(DVT4)
-    call newDT3%DVT%append_ptr(DVT)
-    call newDT3%adjDT%append_ptr(newDT4)
-    call newDT3%adjDT%append_ptr(newDT2)
-    call newDT3%adjDT%append_ptr(adjDT3)
-    call newDT4%DVT%append_ptr(DVT4)
-    call newDT4%DVT%append_ptr(DVT4)
-    call newDT4%DVT%append_ptr(DVT)
-    call newDT4%adjDT%append_ptr(newDT1)
-    call newDT4%adjDT%append_ptr(newDT3)
-    call newDT4%adjDT%append_ptr(adjDT4)
+    call newDT3%add_DVT(DVT2, DVT4, DVT)
+    call newDT3%add_adjDT(newDT4, newDT2, adjDT3)
+    call newDT4%add_DVT(DVT4, DVT3, DVT)
+    call newDT4%add_adjDT(newDT1, newDT3, adjDT4)
     ! Link newly inserted DVT to its incident DTs.
     call add_incident_DT(DVT, newDT1)
     ! Make change to the oldDTs' adjDT and DVT.
@@ -790,10 +759,10 @@ contains
       end if
     end do
     ! - DVT
-    call DVT1%incDT%replace_ptr(oldDT1, newDT1)
-    call DVT2%incDT%replace_ptr(oldDT1, newDT2, old_value2=oldDT2)
-    call DVT3%incDT%replace_ptr(oldDT1, newDT4, old_value2=oldDT2)
-    call DVT4%incDT%replace_ptr(oldDT2, newDT3)
+    call DVT1%incDT%replace_ptr(oldDT1, newDT1, fatal=.false.)
+    call DVT2%incDT%replace_ptr(oldDT1, newDT2, old_value2=oldDT2, fatal=.false.)
+    call DVT3%incDT%replace_ptr(oldDT1, newDT4, old_value2=oldDT2, fatal=.false.)
+    call DVT4%incDT%replace_ptr(oldDT2, newDT3, fatal=.false.)
     ! Validate the new DTs.
     call validate_DT(newDT1)
     call validate_DT(newDT2)
@@ -807,8 +776,6 @@ contains
     call oldDT2%subDT%append_ptr(newDT3)
     call oldDT2%subDT%append_ptr(newDT4)
     ! Remove DVT from point-in-triangle relation.
-    DVT%cntDT1 => null()
-    DVT%cntDT2 => null()
     call delete_included_DVT(DVT, oldDT1, oldDT2)
 
   end subroutine flip24
@@ -823,8 +790,6 @@ contains
 
     type(delaunay_vertex_type), pointer :: DVT1, DVT2, DVT3, DVT4
     type(delaunay_triangle_type), pointer :: adjDT1, adjDT2, adjDT3, adjDT4
-    type(delaunay_triangle_type), pointer :: DT
-    integer i
 
     DVT1 => get_DVT(oldDT1%DVT, idx_map(1))
     DVT2 => get_DVT(oldDT1%DVT, idx_map(2))
@@ -837,24 +802,16 @@ contains
     ! Create two new DTs and set up their topology
     call create_DT(newDT1)
     call create_DT(newDT2)
-    call newDT1%DVT%append_ptr(DVT1)
-    call newDT1%DVT%append_ptr(DVT4)
-    call newDT1%DVT%append_ptr(DVT3)
-    call newDT1%adjDT%append_ptr(newDT2)
-    call newDT1%adjDT%append_ptr(adjDT2)
-    call newDT1%adjDT%append_ptr(adjDT3) ! This is correct.
-    call newDT2%DVT%append_ptr(DVT4)
-    call newDT2%DVT%append_ptr(DVT2)
-    call newDT2%DVT%append_ptr(DVT3)
-    call newDT2%adjDT%append_ptr(adjDT1)
-    call newDT2%adjDT%append_ptr(newDT1)
-    call newDT2%adjDT%append_ptr(adjDT4)
+    call newDT1%add_DVT(DVT1, DVT4, DVT3)
+    call newDT1%add_adjDT(newDT2, adjDT2, adjDT3)
+    call newDT2%add_DVT(DVT4, DVT2, DVT3)
+    call newDT2%add_adjDT(adjDT1, newDT1, adjDT4)
     ! Make change to the old triangle's adjDTs and DVTs
     call adjDT1%adjDT%replace_ptr(oldDT1, newDT2)
     call adjDT2%adjDT%replace_ptr(oldDT1, newDT1)
     call adjDT3%adjDT%replace_ptr(oldDT2, newDT1)
     call adjDT4%adjDT%replace_ptr(oldDT2, newDT2)
-    if (DVT1%incDT%closed()) then
+    if (DVT1%incDT%cyclic()) then
       ! The full list of incident DTs has been extracted.
       ! This may be called from delete_DVT.
       call merge_incident_DT(DVT1, oldDT1, oldDT2, newDT1)
@@ -894,12 +851,8 @@ contains
     adjDT3 => get_DT(oldDT3%adjDT, idx_map(5))
     ! Create a new DT and set up its topology.
     call create_DT(newDT)
-    call newDT%DVT%append_ptr(DVT1)
-    call newDT%DVT%append_ptr(DVT2)
-    call newDT%DVT%append_ptr(DVT4)
-    call newDT%adjDT%append_ptr(adjDT2)
-    call newDT%adjDT%append_ptr(adjDT3)
-    call newDT%adjDT%append_ptr(adjDT1)
+    call newDT%add_DVT(DVT1, DVT2, DVT4)
+    call newDT%add_adjDT(adjDT2, adjDT3, adjDT1)
     ! Make change to the old triangle's adjDTs and DVTs.
     call adjDT1%adjDT%replace_ptr(oldDT1, newDT)
     call adjDT2%adjDT%replace_ptr(oldDT2, newDT)
@@ -976,14 +929,19 @@ contains
   subroutine record_included_DVT(DVT, DT1, DT2)
 
     type(delaunay_vertex_type), intent(inout) :: DVT
-    type(delaunay_triangle_type), intent(inout) :: DT1
-    type(delaunay_triangle_type), intent(inout), optional :: DT2
+    type(delaunay_triangle_type), intent(inout), target :: DT1
+    type(delaunay_triangle_type), intent(inout), target, optional :: DT2
 
     call DT1%incDVT%append_ptr(DVT)
+    DVT%cntDT1 => DT1
     DVT%stub_item1 => DT1%incDVT%last_item
     if (present(DT2)) then
       call DT2%incDVT%append_ptr(DVT)
+      DVT%cntDT2 => DT2
       DVT%stub_item2 => DT2%incDVT%last_item
+    else
+      DVT%cntDT2 => null()
+      DVT%stub_item2 => null()
     end if
 
   end subroutine record_included_DVT
@@ -994,8 +952,10 @@ contains
     type(delaunay_triangle_type), intent(inout) :: DT1
     type(delaunay_triangle_type), intent(inout), optional :: DT2
 
-    call DT1%incDVT%remove_item(DVT%stub_item1)
-    if (present(DT2)) call DT2%incDVT%remove_item(DVT%stub_item2)
+    if (associated(DVT%stub_item1)) call DT1%incDVT%remove_item(DVT%stub_item1)
+    if (present(DT2) .and. associated(DVT%stub_item2)) call DT2%incDVT%remove_item(DVT%stub_item2)
+    DVT%cntDT1 => null()
+    DVT%cntDT2 => null()
 
   end subroutine delete_included_DVT
 
@@ -1038,6 +998,7 @@ contains
     do while (.not. iterator%ended())
       select type (DT => iterator%value)
       type is (delaunay_triangle_type)
+        call global_DT_list%remove_item(DT%stub)
         call tmpDT_list%delete_and_next(iterator)
       end select
     end do
@@ -1077,6 +1038,7 @@ contains
     class(delaunay_vertex_type), intent(in) :: this
 
     type(delaunay_triangle_type), pointer :: DT
+    type(delaunay_vertex_type), pointer :: DVT
     integer i
 
     write(*, *) 'DelaunayVertex (' // trim(to_string(this%id)) // '):'
@@ -1087,6 +1049,20 @@ contains
       DT => get_DT(this%incDT, i)
       write(*, '(A)', advance='no') trim(to_string(DT%id)) // ', '
     end do
+    write(*, *)
+    write(*, '(A)', advance='no') '  Link vertices: '
+    do i = 1, this%linkDVT%size
+      DVT => get_DVT(this%linkDVT, i)
+      write(*, '(A)', advance='no') trim(to_string(DVT%id)) // ', '
+    end do
+    write(*, *)
+    write(*, '(A)', advance='no') '  Include triangle: '
+    if (associated(this%cntDT1)) then
+      write(*, '(A)', advance='no') trim(to_string(this%cntDT1%id)) // ', '
+    end if
+    if (associated(this%cntDT2)) then
+      write(*, '(A)', advance='no') trim(to_string(this%cntDT2%id)) // ', '
+    end if
     write(*, *)
 
   end subroutine delaunay_vertex_print
@@ -1099,6 +1075,32 @@ contains
     this%id = id
 
   end subroutine delaunay_triangle_init
+
+  subroutine delaunay_triangle_add_DVT(this, DVT1, DVT2, DVT3)
+
+    class(delaunay_triangle_type), intent(inout) :: this
+    type(delaunay_vertex_type), intent(in) :: DVT1
+    type(delaunay_vertex_type), intent(in) :: DVT2
+    type(delaunay_vertex_type), intent(in) :: DVT3
+
+    call this%DVT%append_ptr(DVT1)
+    call this%DVT%append_ptr(DVT2)
+    call this%DVT%append_ptr(DVT3)
+
+  end subroutine delaunay_triangle_add_DVT
+
+  subroutine delaunay_triangle_add_adjDT(this, adjDT1, adjDT2, adjDT3)
+
+    class(delaunay_triangle_type), intent(inout) :: this
+    type(delaunay_triangle_type), intent(in) :: adjDT1
+    type(delaunay_triangle_type), intent(in) :: adjDT2
+    type(delaunay_triangle_type), intent(in) :: adjDT3
+
+    call this%adjDT%append_ptr(adjDT1)
+    call this%adjDT%append_ptr(adjDT2)
+    call this%adjDT%append_ptr(adjDT3)
+
+  end subroutine delaunay_triangle_add_adjDT
 
   subroutine delaunay_triangle_print(this, details)
 
@@ -1228,11 +1230,12 @@ contains
     type(delaunay_triangle_type) local_DT
 
     ! Let global_DT_list manages memory to
-    call local_DT%init(id=global_DT_list%size+1)
+    id_DT = id_DT + 1
     call global_DT_list%append(local_DT)
     select type (val => global_DT_list%last_value())
     type is (delaunay_triangle_type)
       DT => val
+      call DT%init(id=id_DT)
       DT%stub => global_DT_list%last_item
     end select
 

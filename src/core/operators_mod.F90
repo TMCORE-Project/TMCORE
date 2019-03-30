@@ -370,7 +370,7 @@ contains
     real(real_kind) d2fdx2_vertex1, d2fdx2_vertex2 ! 2nd order derivatives
     real(real_kind) d4fdx4_vertex1, d4fdx4_vertex2 ! 4th order derivatives
     
-    integer i, iEdge, iVertex1, iVertex2
+    integer iEdge, iVertex1, iVertex2
     
     pv_edge = 0.5d0 * ( pv_vertex(verticesOnEdge(1,:)) + pv_vertex(verticesOnEdge(2,:)) )
 
@@ -432,7 +432,7 @@ contains
     real(real_kind) d2fdx2_cell1, d2fdx2_cell2 ! 2nd order derivatives
     real(real_kind) d4fdx4_cell1, d4fdx4_cell2 ! 4th order derivatives
   
-    integer i, iEdge, iCell1, iCell2
+    integer iEdge, iCell1, iCell2
 
     coef2 = 0.0d0
     if (adv_order == 3               ) coef2 =  1.0d0

@@ -19,7 +19,7 @@ contains
     integer, intent(in), optional :: left_idx_
     integer, intent(in), optional :: right_idx_
 
-    integer part_idx, i
+    integer part_idx
     integer left_idx, right_idx
 
     left_idx  = merge(left_idx_, 1, present(left_idx_))
@@ -79,7 +79,7 @@ contains
     integer, intent(in), optional :: left_idx_
     integer, intent(in), optional :: right_idx_
 
-    integer part_idx, i
+    integer part_idx
     integer left_idx, right_idx
 
     left_idx  = merge(left_idx_, 1, present(left_idx_))
@@ -102,7 +102,7 @@ contains
       integer, intent(inout) :: left_idx
       integer, intent(inout) :: right_idx
 
-      integer tmp
+      real tmp
       integer pivot_idx, i, j
 
       pivot_idx = left_idx

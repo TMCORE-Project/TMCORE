@@ -122,7 +122,6 @@ contains
     real(real_kind), intent(out) :: gd_tend_cell(:)
 
     real(real_kind) flux(lbound(u_edge, 1):ubound(u_edge, 1))
-    integer iCell
 
     flux = u_edge * gd_edge
     
@@ -137,7 +136,6 @@ contains
   real(real_kind), intent(out) :: vor_tend_cell(:)
 
   real(real_kind) flux(lbound(u_edge, 1):ubound(u_edge, 1))
-  integer iCell
 
   flux = u_edge * vor_edge
   

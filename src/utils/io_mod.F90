@@ -114,18 +114,39 @@ contains
     character(*), intent(in), optional :: period
     character(*), intent(in), optional :: frames_per_file
 
-    character(30) name_, mode_, period_, time_value, time_units
+    character(30) name_, period_, time_value, time_units
+    character(10) mode_
     character(256) desc_, file_prefix_, file_path_
     type(dataset_type) dataset
     logical is_exist
     integer i
     real value
 
-    name_ = merge(name, 'hist0', present(name))
-    desc_ = merge(desc, '', present(desc))
-    file_prefix_ = merge(file_prefix, '', present(file_prefix))
-    file_path_ = merge(file_path, '', present(file_path))
-    mode_ = merge(mode, 'output', present(mode))
+    if (present(name)) then
+      name_ = name
+    else
+      name_ = 'hist0'
+    end if
+    if (present(desc)) then
+      desc_ = desc
+    else
+      desc_ = 'N/A'
+    end if
+    if (present(file_prefix)) then
+      file_prefix_ = file_prefix
+    else
+      file_prefix_ = ''
+    end if
+    if (present(file_path)) then
+      file_path_ = file_path
+    else
+      file_path_ = ''
+    end if
+    if (present(mode)) then
+      mode_ = mode
+    else
+      mode_ = 'output'
+    end if
     if (present(period)) then
       period_ = period
     else
@@ -252,7 +273,6 @@ contains
 
     type(dataset_type), pointer :: dataset
     type(dim_type) dim
-    integer i
 
     if (present(dataset_name)) then
       dataset => get_dataset(name=dataset_name, mode='output')
@@ -401,7 +421,7 @@ contains
 
     if (present(tag)) then
       if (dataset%file_path /= 'N/A') then
-        file_path = trim(dataset%file_path) // '.' // trim(tag)
+        file_path = trim(string_delete(dataset%file_path, '.nc')) // '.' // trim(tag) // '.nc'
       else
         write(file_path, "(A, '.', A, '.', A, '.nc')") trim(dataset%file_prefix), trim(curr_time_format), tag
       end if
