@@ -870,9 +870,9 @@ contains
   subroutine merge_incident_DT(DVT, oldDT1, oldDT2, newDT)
 
     type(delaunay_vertex_type), intent(inout), target :: DVT
-    type(delaunay_triangle_type), intent(in), pointer :: oldDT1
-    type(delaunay_triangle_type), intent(in), pointer :: oldDT2
-    type(delaunay_triangle_type), intent(in), pointer :: newDT
+    type(delaunay_triangle_type), intent(in), target :: oldDT1
+    type(delaunay_triangle_type), intent(in), target :: oldDT2
+    type(delaunay_triangle_type), intent(in), target :: newDT
 
     call DVT%incDT%replace_ptr(oldDT1, newDT)
     call DVT%incDT%delete_ptr(oldDT2)
