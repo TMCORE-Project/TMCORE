@@ -7,6 +7,7 @@ module sphere_geometry_mod
 
   private
 
+  public euler_formula
   public cartesian_transform
   public inverse_cartesian_transform
   public rotation_transform
@@ -40,6 +41,22 @@ module sphere_geometry_mod
   end interface inverse_cartesian_transform
 
 contains
+
+  integer function euler_formula(num_cell, num_vertex, num_edge) result(res)
+
+    integer, intent(in), optional :: num_cell
+    integer, intent(in), optional :: num_vertex
+    integer, intent(in), optional :: num_edge
+
+    if (present(num_cell) .and. present(num_vertex)) then
+      res = num_cell + num_vertex - 2
+    else if (present(num_cell) .and. present(num_edge)) then
+      res = num_edge - num_cell + 2
+    else if (present(num_vertex) .and. present(num_edge)) then
+      res = num_edge - num_vertex + 2
+    end if
+
+  end function euler_formula
 
   subroutine cartesian_transform_1(lon, lat, x, y, z)
 
