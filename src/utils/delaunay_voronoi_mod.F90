@@ -15,8 +15,18 @@ module delaunay_voronoi_mod
 
   public delaunay_voronoi_init
   public delaunay_triangulation
+  public voronoi_diagram
+  public delaunay_voronoi_output
   public delaunay_vertex_type
   public delaunay_triangle_type
+  public voronoi_vertex_type
+  public voronoi_cell_type
+  public get_DVT
+  public get_DT
+  public get_VVT
+  public get_VC
+  public im1
+  public ip1
 
   type, extends(point_type) :: delaunay_vertex_type
     integer :: id = -1
@@ -35,11 +45,11 @@ module delaunay_voronoi_mod
 
   type delaunay_triangle_type
     integer :: id = -1
-    type(array_type) DVT                ! Delaunay vertices
-    type(array_type) adjDT              ! Adjacent Delaunay triangles
-    type(linked_list_type) subDT        ! Subdivided Delaunay triangles
-    type(linked_list_type) incDVT       ! Included Delaunay vertices
-    type(point_type), pointer :: center ! Center of circumcircle
+    type(array_type) DVT                         ! Delaunay vertices
+    type(array_type) adjDT                       ! Adjacent Delaunay triangles
+    type(linked_list_type) subDT                 ! Subdivided Delaunay triangles
+    type(linked_list_type) incDVT                ! Included Delaunay vertices
+    type(voronoi_vertex_type), pointer :: center ! Center of circumcircle
     real(8) radius
     ! For quick remove.
     type(linked_list_item_type), pointer :: stub
@@ -50,16 +60,38 @@ module delaunay_voronoi_mod
     procedure :: print => delaunay_triangle_print
   end type delaunay_triangle_type
 
-  type voronoi_cell_type
+  type, extends(point_type) :: voronoi_vertex_type
     integer :: id = -1
   contains
+    procedure :: init => voronoi_vertex_init
+  end type voronoi_vertex_type
+
+  type voronoi_edge_type
+    integer :: id = -1
+    type(voronoi_vertex_type), pointer :: VVT1
+    type(voronoi_vertex_type), pointer :: VVT2
+  contains
+    procedure :: init => voronoi_edge_init
+  end type voronoi_edge_type
+
+  type voronoi_cell_type
+    integer :: id = -1
+    type(delaunay_vertex_type), pointer :: center
+    type(array_type) VVT
+    type(array_type) VE
+    type(array_type) adjVC
+  contains
     procedure :: init => voronoi_cell_init
+    procedure :: print => voronoi_cell_print
   end type voronoi_cell_type
 
+  ! Main data structure
   type(array_type) global_DVT_array
   type(linked_list_type) virtual_DVT_list ! Virtual Delaunay vertex array
   type(linked_list_type) global_DT_list
-  type(array_type) VC_array
+  type(array_type) global_VVT_array
+  type(array_type) global_VE_array
+  type(array_type) global_VC_array
   type(linked_list_type) tmpDT_list ! Temporal Delaunay triangles
   type(linked_list_type) obsDT_list ! Obsolete Delaunay triangles
 
@@ -79,6 +111,7 @@ module delaunay_voronoi_mod
     module procedure get_DVT_from_array
     module procedure get_DVT_from_iterator
     module procedure get_DVT_from_item
+    module procedure get_DVT_from_value
   end interface get_DVT
 
   interface get_DT
@@ -87,6 +120,19 @@ module delaunay_voronoi_mod
     module procedure get_DT_from_iterator
     module procedure get_DT_from_item
   end interface get_DT
+
+  interface get_VVT
+    module procedure get_VVT_from_array
+    module procedure get_VVT_from_value
+  end interface get_VVT
+
+  interface get_VC
+    module procedure get_VC_from_array
+  end interface get_VC
+
+  interface get_VE
+    module procedure get_VE_from_value
+  end interface get_VE
 
   interface orient
     module procedure orient1
@@ -100,11 +146,13 @@ module delaunay_voronoi_mod
   end interface in_circle
 
   interface
-    subroutine output_interface(DVT_array, DT_list, tag)
+    subroutine output_interface(DVT_array, DT_list, VVT_array, VC_array, tag)
       import array_type
       import linked_list_type
       type(array_type), intent(in) :: DVT_array
       type(linked_list_type), intent(in) :: DT_list
+      type(array_type), intent(in) :: VVT_array
+      type(array_type), intent(in) :: VC_array
       character(*), intent(in), optional :: tag
     end subroutine output_interface
   end interface
@@ -128,21 +176,23 @@ contains
     integer i
 
     global_DVT_array = array(num_point)
-    VC_array  = array(num_point)
+    global_VC_array  = array(num_point)
 
     if (present(lon) .and. present(lat)) then
       do i = 1, num_point
         call DVT%init(id=i, lon=lon(i), lat=lat(i))
         call global_DVT_array%append(DVT)
         call VC%init(id=i)
-        call VC_array%append(VC)
+        VC%center => get_DVT(global_DVT_array%last_value)
+        call global_VC_array%append(VC)
       end do
     else if (present(x) .and. present(y) .and. present(z)) then
       do i = 1, num_point
         call DVT%init(id=i, x=x(i), y=y(i), z=z(i))
         call global_DVT_array%append(DVT)
         call VC%init(id=i)
-        call VC_array%append(VC)
+        VC%center => get_DVT(global_DVT_array%last_value)
+        call global_VC_array%append(VC)
       end do
     end if
 
@@ -150,9 +200,7 @@ contains
 
   end subroutine delaunay_voronoi_init
 
-  subroutine delaunay_triangulation(output)
-
-    procedure(output_interface) output
+  subroutine delaunay_triangulation()
 
     integer i, j, ret, idx(3)
     type(delaunay_vertex_type), pointer :: DVT1, DVT2, DVT3
@@ -163,7 +211,6 @@ contains
     inserted = .false.
 
     call get_three_DVT_indices(idx)
-    idx = [5594,       10265,       37780]
     DVT1 => get_DVT(global_DVT_array, idx(1))
     DVT2 => get_DVT(global_DVT_array, idx(2))
     DVT3 => get_DVT(global_DVT_array, idx(3))
@@ -222,8 +269,6 @@ contains
       end do DT_loop
     end do DVT_loop
 
-    call output(global_DVT_array, global_DT_list, '00000')
-
     ! Insert the rest vertices one at a time.
     do i = 1, global_DVT_array%size
       if (inserted(i)) cycle
@@ -252,8 +297,6 @@ contains
       call delete_temporal_DT()
     end do
 
-    call output(global_DVT_array, global_DT_list)
-
     ! Extract the full list of incident DTs and link DVTs.
     do i = 1, global_DVT_array%size
       DVT1 => get_DVT(global_DVT_array, i)
@@ -271,9 +314,82 @@ contains
     end do
     call virtual_DVT_list%clear()
 
+    ! Reset id of DVT and DT.
+    do i = 1, global_DVT_array%size
+      DVT1 => get_DVT(global_DVT_array, i)
+      DVT1%id = i
+    end do
+    i = 1
+    DT_iterator = linked_list_iterator(global_DT_list)
+    do while (.not. DT_iterator%ended())
+      DT1 => get_DT(DT_iterator)
+      DT1%id = i
+      i = i + 1
+      call DT_iterator%next()
+    end do
+
     call log_notice('Delaunay triangulation is done.')
 
   end subroutine delaunay_triangulation
+
+  subroutine voronoi_diagram()
+
+    type(linked_list_iterator_type) DT_iterator, DVT_iterator
+    type(delaunay_triangle_type), pointer :: DT, DT1, DT2
+    type(delaunay_vertex_type), pointer :: DVT, DVT1, DVT2, DVT3
+    type(voronoi_vertex_type) VVT
+    type(voronoi_vertex_type), pointer :: VVT1, VVT2
+    type(voronoi_edge_type) VE
+    type(voronoi_edge_type), pointer :: VE1
+    type(voronoi_cell_type), pointer :: VC
+    integer i, j, k
+
+    ! Calculate Voronoi vertices which is the circumcenter of Delaunay triangles.
+    global_VVT_array = array(global_DT_list%size)
+    DT_iterator = linked_list_iterator(global_DT_list)
+    i = 1
+    do while (.not. DT_iterator%ended())
+      DT => get_DT(DT_iterator)
+      call VVT%init(id=i)
+      call global_VVT_array%append(VVT)
+      VVT1 => get_VVT(global_VVT_array%last_value)
+      call calc_circumcircle(DT, VVT1)
+      call DT_iterator%next()
+      i = i + 1
+    end do
+
+    ! Set edges for Voronoi cells.
+    k = 1
+    do i = 1, global_VC_array%size
+      VC => get_VC(global_VC_array, i)
+      DVT => VC%center
+      ! Loop on incDT of DVT.
+      DT_iterator = linked_list_iterator(DVT%incDT)
+      do j = 1, DVT%linkDVT%size
+        DVT1 => get_DVT(DVT%linkDVT, j)
+        call VC%adjVC%append_ptr(get_VC(global_VC_array, DVT1%id))
+        DT1 => get_DT(DT_iterator)
+        DT2 => get_DT(DT_iterator%next_item)
+        call VC%VVT%append_ptr(get_VVT(global_VVT_array, DT1%id))
+        call VE%init(id=k)
+        call global_VE_array%append(VE)
+        VE1 => get_VE(global_VE_array%last_value)
+        VE1%VVT1 => DT1%center
+        VE1%VVT2 => DT2%center
+        call DT_iterator%next()
+        k = k + 1
+      end do
+    end do
+
+  end subroutine voronoi_diagram
+
+  subroutine delaunay_voronoi_output(output)
+
+    procedure(output_interface) output
+
+    call output(global_DVT_array, global_DT_list, global_VVT_array, global_VC_array)
+
+  end subroutine delaunay_voronoi_output
 
   subroutine get_three_DVT_indices(idx)
 
@@ -403,8 +519,8 @@ contains
       DVT_loop: do i = 1, 3
         linkDVT1 => get_DVT(incDT1%DVT, i)
         if (associated(linkDVT1, DVT)) then
-          ! linkDVT is the target DVT, so shift to the next DVT.
-          linkDVT1 => get_DVT(incDT1%DVT, ip1(i))
+          ! linkDVT is the target DVT, so shift to the previous DVT.
+          linkDVT1 => get_DVT(incDT1%DVT, im1(i))
           if (.not. associated(linkDVT0)) then
             ! Record the first one.
             linkDVT0 => linkDVT1
@@ -1004,6 +1120,33 @@ contains
 
   end subroutine delete_temporal_DT
 
+  subroutine calc_circumcircle(DT, center)
+
+    type(delaunay_triangle_type), intent(inout) :: DT
+    type(voronoi_vertex_type), intent(inout), target :: center
+
+    type(delaunay_vertex_type), pointer :: DVT1, DVT2, DVT3
+    real(8) e2(3), e3(3), n(3), l, tmp
+    integer i
+
+    DVT1 => get_DVT(DT%DVT, 1)
+    DVT2 => get_DVT(DT%DVT, 2)
+    DVT3 => get_DVT(DT%DVT, 3)
+    e3 = [DVT2%x - DVT1%x, DVT2%y - DVT1%y, DVT2%z - DVT1%z]
+    e2 = [DVT3%x - DVT1%x, DVT3%y - DVT1%y, DVT3%z - DVT1%z]
+    n  = cross_product(e3, e2)
+    l  = sqrt(sum(n**2))
+    if (l < eps) then
+      call log_error('Vertices ' // trim(to_string(DVT1%id)) // ', ' // trim(to_string(DVT2%id)) // ', ' // trim(to_string(DVT3%id)) // ' are collinear!')
+    end if
+    center%x = n(1) / l
+    center%y = n(2) / l
+    center%z = n(3) / l
+    call inverse_cartesian_transform(center)
+    DT%center => center
+
+  end subroutine calc_circumcircle
+
   ! ----------------------------------------------------------------------------
   !                        Type bounding procedures
   ! ----------------------------------------------------------------------------
@@ -1040,7 +1183,7 @@ contains
     type(delaunay_vertex_type), pointer :: DVT
     integer i
 
-    write(*, *) 'DelaunayVertex (' // trim(to_string(this%id)) // '):'
+    write(*, *) 'Delaunay vertex (' // trim(to_string(this%id)) // '):'
     write(*, *) '  LON: ', this%lon * deg, ' LAT: ', this%lat * deg
     write(*, *) '  X: ', this%x, ' Y: ', this%y, ' Z: ', this%z
     write(*, '(A)', advance='no') '  Incident triangles: '
@@ -1110,7 +1253,7 @@ contains
     type(delaunay_triangle_type), pointer :: DT
     integer i
 
-    write(*, *) 'DelaunayTriangle (' // trim(to_string(this%id)) // '): '
+    write(*, *) 'Delaunay triangle (' // trim(to_string(this%id)) // '): '
     if (this%DVT%size > 0) then
       write(*, '(A)', advance='no') '   Vertices: '
       do i = 1, this%DVT%size
@@ -1155,6 +1298,24 @@ contains
 
   end subroutine delaunay_triangle_print
 
+  subroutine voronoi_vertex_init(this, id)
+
+    class(voronoi_vertex_type), intent(inout) :: this
+    integer, intent(in) :: id
+
+    this%id = id
+
+  end subroutine voronoi_vertex_init
+
+  subroutine voronoi_edge_init(this, id)
+
+    class(voronoi_edge_type), intent(inout) :: this
+    integer, intent(in) :: id
+
+    this%id = id
+
+  end subroutine voronoi_edge_init
+
   subroutine voronoi_cell_init(this, id)
 
     class(voronoi_cell_type), intent(inout) :: this
@@ -1163,6 +1324,38 @@ contains
     this%id = id
 
   end subroutine voronoi_cell_init
+
+  subroutine voronoi_cell_print(this)
+
+    class(voronoi_cell_type), intent(in) :: this
+
+    type(voronoi_vertex_type), pointer :: VVT
+    type(voronoi_cell_type), pointer :: VC
+    integer i
+
+    write(*, *) 'Voronoi cell (' // trim(to_string(this%id)) // '): '
+    if (this%VVT%size > 0) then
+      write(*, '(A)', advance='no') '   Vertices: '
+      do i = 1, this%VVT%size
+        VVT => get_VVT(this%VVT, i)
+        write(*, '(A)', advance='no') trim(to_string(VVT%id)) // ', '
+      end do
+      write(*, *)
+    else
+      write(*, *) '  Vertices: Not connected with vertices yet.'
+    end if
+    if (this%adjVC%size > 0) then
+      write(*, '(A)', advance='no') '   Neightbor cells: '
+      do i = 1, this%adjVC%size
+        VC => get_VC(this%adjVC, i)
+        write(*, '(A)', advance='no') trim(to_string(VC%id)) // ', '
+      end do
+      write(*, *)
+    else
+      write(*, *) '  Neightbor cells: Not connected with cells yet.'
+    end if
+
+  end subroutine voronoi_cell_print
 
   function get_DVT_from_list(DVT_list, index) result(res)
 
@@ -1221,6 +1414,20 @@ contains
     end select
 
   end function get_DVT_from_item
+
+  function get_DVT_from_value(value) result(res)
+
+    class(*), intent(in), pointer :: value
+    type(delaunay_vertex_type), pointer :: res
+
+    select type (value)
+    type is (delaunay_vertex_type)
+      res => value
+    class default
+      res => null()
+    end select
+
+  end function get_DVT_from_value
 
   subroutine create_DT(DT)
 
@@ -1297,6 +1504,64 @@ contains
     end select
 
   end function get_DT_from_item
+
+  function get_VVT_from_array(VVT_array, index) result(res)
+
+    type(array_type), intent(in) :: VVT_array
+    integer, intent(in) :: Index
+    type(voronoi_vertex_type), pointer :: res
+
+    select type (val => VVT_array%value_at(index))
+    type is (voronoi_vertex_type)
+      res => val
+    class default
+      res => null()
+    end select
+
+  end function get_VVT_from_array
+
+  function get_VVT_from_value(value) result(res)
+
+    class(*), intent(in), target :: value
+    type(voronoi_vertex_type), pointer :: res
+
+    select type (val => value)
+    type is (voronoi_vertex_type)
+      res => val
+    class default
+      res => null()
+    end select
+
+  end function get_VVT_from_value
+
+  function get_VC_from_array(VC_array, index) result(res)
+
+    type(array_type), intent(in) :: VC_array
+    integer, intent(in) :: index
+    type(voronoi_cell_type), pointer :: res
+
+    select type (val => VC_array%value_at(index))
+    type is (voronoi_cell_type)
+      res => val
+    class default
+      res => null()
+    end select
+
+  end function get_VC_from_array
+
+  function get_VE_from_value(value) result(res)
+
+    class(*), intent(in), target :: value
+    type(voronoi_edge_type), pointer :: res
+
+    select type (val => value)
+    type is (voronoi_edge_type)
+      res => val
+    class default
+      res => null()
+    end select
+
+  end function get_VE_from_value
 
   ! ----------------------------------------------------------------------------
   !                            Geometric predicates
