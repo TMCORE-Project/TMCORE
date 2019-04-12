@@ -54,9 +54,9 @@ contains
 
   subroutine tmcore_swm_run()
   
-    call scalar_c2e_interp_operator   (state(old)%cell  %gd , state(old)%edge  %gd                          )
-    call add_upwind_correction_on_cell(state(old)%cell  %gd , state(old)%edge  %iap_u, state(old)%edge%gd   )
-    call iap_swm_operator             (state(old)%edge  %gd , state(old)%edge  %u    , state(old)%edge%iap_u)
+    call scalar_c2e_interp_operator   (state(old)%cell  %gd , state(old)%edge  %gd                                     )
+    call add_upwind_correction_on_cell(state(old)%cell  %gd , state(old)%edge  %iap_u, state(old)%edge%gd   , adv_order)
+    call iap_swm_operator             (state(old)%edge  %gd , state(old)%edge  %u    , state(old)%edge%iap_u           )
     
     call calc_tangent_wind            (state(old)%edge  %u  , state(old)%edge  %v                           )
     call calc_vor_on_cell             (state(old)%edge  %v  , state(old)%cell  %vor                         )
@@ -69,9 +69,9 @@ contains
     do while (.not. time_is_finished())
       call time_integrate(spatial_operators, update_state)
       call time_advance()
-      call scalar_c2e_interp_operator   (state(old)%cell  %gd , state(old)%edge  %gd                         )
-      call add_upwind_correction_on_cell(state(old)%cell  %gd , state(old)%edge  %iap_u, state(old)%edge  %gd) ! iap_u has the same sign as u
-      call inverse_iap_swm_operator     (state(old)%edge  %gd , state(old)%edge  %iap_u, state(old)%edge  %u )
+      call scalar_c2e_interp_operator   (state(old)%cell  %gd , state(old)%edge  %gd                                    )
+      call add_upwind_correction_on_cell(state(old)%cell  %gd , state(old)%edge  %iap_u, state(old)%edge  %gd, adv_order) ! iap_u has the same sign as u
+      call inverse_iap_swm_operator     (state(old)%edge  %gd , state(old)%edge  %iap_u, state(old)%edge  %u            )
       
       call calc_tangent_wind            (state(old)%edge  %u  , state(old)%edge  %v                          )
       call calc_vor_on_cell             (state(old)%edge  %v  , state(old)%cell  %vor                        )
@@ -90,23 +90,23 @@ contains
     type(tend_type),  intent(inout) :: tend
 
     ! Inverse IAP transformation
-    call scalar_c2e_interp_operator   (state%cell  %gd     , state%edge  %gd                    )
-    call add_upwind_correction_on_cell(state%cell  %gd     , state%edge  %iap_u, state%edge%gd  )
-    call inverse_iap_swm_operator     (state%edge  %gd     , state%edge  %iap_u, state%edge%u   )
+    call scalar_c2e_interp_operator   (state%cell  %gd     , state%edge  %gd                             )
+    call add_upwind_correction_on_cell(state%cell  %gd     , state%edge  %iap_u, state%edge%gd, adv_order)
+    call inverse_iap_swm_operator     (state%edge  %gd     , state%edge  %iap_u, state%edge%u            )
     
     ! Calculate tend of geopotential depth on cell
     call calc_gd_tend_on_cell         (state%edge  %u      , state%edge  %gd   , tend %cell%gd  )
     
     ! Calculate tend of geopotential depth on edge
-    call scalar_c2e_interp_operator   (tend %cell  %gd     , tend %edge  %gd                    )
-    call add_upwind_correction_on_cell(tend %cell  %gd     , state%edge  %iap_u, tend %edge%gd  )
+    call scalar_c2e_interp_operator   (tend %cell  %gd     , tend %edge  %gd                             )
+    call add_upwind_correction_on_cell(tend %cell  %gd     , state%edge  %iap_u, tend %edge%gd, adv_order)
     
     ! Calculate potential vorticity on edge
-    call calc_tangent_wind            (state%edge  %u      , state%edge  %v                     )
-    call calc_vor_on_cell             (state%edge  %v      , state%cell  %vor                   )
-    call calc_pv_on_cell              (state%cell  %vor    , state%cell  %gd   , state%cell%pv  )
-    call scalar_c2e_interp_operator   (state%cell  %pv     , state%edge  %pv                    )
-    call add_upwind_correction_on_cell(state%cell  %pv     , state%edge  %iap_u, state%edge%pv  )
+    call calc_tangent_wind            (state%edge  %u      , state%edge  %v                                    )
+    call calc_vor_on_cell             (state%edge  %v      , state%cell  %vor                                  )
+    call calc_pv_on_cell              (state%cell  %vor    , state%cell  %gd   , state%cell%pv                 )
+    call scalar_c2e_interp_operator   (state%cell  %pv     , state%edge  %pv                                   )
+    call add_upwind_correction_on_cell(state%cell  %pv     , state%edge  %iap_u, state%edge%pv, interp_pv_order)
     
     ! Calculate normal wind tend
     call calc_kinetic_energy          (state%edge  %u      , state%cell  %ke                    )
@@ -159,7 +159,7 @@ contains
 
     real(real_kind) iap_gd_edge(lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
     
-    real(real_kind) E          (lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
+    real(real_kind) E          (lbound(gd_cell    , 1):ubound(gd_cell    , 1))
     real(real_kind) dEdx       (lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
     
     real(real_kind) d3fdx3_cell1, &

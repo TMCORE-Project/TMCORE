@@ -39,6 +39,7 @@ module params_mod
   real(real_kind) :: clust_weight           = 0.25
   integer         :: adv_order              = 2
   logical         :: adv_mono               = .false.
+  integer         :: interp_pv_order        = 2
   character(max_file_path_len) mesh_file_path
 
   namelist /tmcore/         &
@@ -49,6 +50,7 @@ module params_mod
     clust_weight          , &
     adv_order             , &
     adv_mono              , &
+    interp_pv_order       , &
     mesh_file_path
 
   character(max_name_len) case_name

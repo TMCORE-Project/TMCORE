@@ -305,11 +305,12 @@ contains
 
   end subroutine calc_vor_tend_on_vertex
   
-  subroutine add_upwind_correction_on_cell(f_cell, u_edge, f_edge)
+  subroutine add_upwind_correction_on_cell(f_cell, u_edge, f_edge, order)
 
     real(real_kind), intent(in   ) :: f_cell(:)
     real(real_kind), intent(in   ) :: u_edge(:)
     real(real_kind), intent(inout) :: f_edge(:)
+    integer        , intent(in   ) :: order
 
     real(real_kind) :: coef2 = 0.5d0
     real(real_kind) :: coef4 = 0.25d0
@@ -320,12 +321,12 @@ contains
     integer i, iEdge, iCell1, iCell2
 
     coef2 = 0.0d0
-    if (adv_order == 3               ) coef2 =  1.0d0
-    if (adv_order == 3 .and. adv_mono) coef2 = 0.25d0
-    if (adv_order >= 4               ) coef2 =  0.0d0
-    if (adv_order == 6               ) coef4 =  0.0d0
+    if (order == 3               ) coef2 =  1.0d0
+    if (order == 3 .and. adv_mono) coef2 = 0.25d0
+    if (order >= 4               ) coef2 =  0.0d0
+    if (order == 6               ) coef4 =  0.0d0
     
-    if (adv_order == 3 .or. adv_order == 4) then
+    if (order == 3 .or. order == 4) then
       do iEdge = lbound(f_edge, 1), ubound(f_edge, 1)
         iCell1 = cellsOnEdge(1,iEdge)
         iCell2 = cellsOnEdge(2,iEdge)
@@ -336,7 +337,7 @@ contains
         
         f_edge(iEdge) = f_edge(iEdge) - dcEdge(iEdge)**2 * ( (d2fdx2_cell1 + d2fdx2_cell2) - sign(1.0d0, u_edge(iEdge)) * coef2 * (d2fdx2_cell2 - d2fdx2_cell1) ) / 12.0d0
       end do
-    else if (adv_order == 5 .or. adv_order == 6) then
+    else if (order == 5 .or. order == 6) then
       do iEdge = lbound(f_edge, 1), ubound(f_edge, 1)
         iCell1 = cellsOnEdge(1,iEdge)
         iCell2 = cellsOnEdge(2,iEdge)

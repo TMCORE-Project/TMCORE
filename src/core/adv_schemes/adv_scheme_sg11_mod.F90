@@ -40,7 +40,7 @@ contains
     real(real_kind) flux(lbound(u_edge, 1):ubound(u_edge, 1))
 
     call scalar_c2e_interp_operator(f_cell, f_edge)
-    call add_upwind_correction_on_cell(f_cell, u_edge, f_edge)
+    call add_upwind_correction_on_cell(f_cell, u_edge, f_edge, adv_order)
 
     flux = u_edge * f_edge
     call div_operator(flux, tend_f_cell)
