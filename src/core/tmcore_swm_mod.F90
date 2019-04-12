@@ -157,7 +157,7 @@ contains
 
     real(real_kind) iap_gd_edge(lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
     
-    real(real_kind) E          (lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
+    real(real_kind) E          (lbound(gd_cell    , 1):ubound(gd_cell    , 1))
     real(real_kind) dEdx       (lbound(u_tend_edge, 1):ubound(u_tend_edge, 1))
     
     real(real_kind) d3fdx3_cell1, &
