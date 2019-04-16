@@ -165,7 +165,7 @@ contains
     
     integer iCell1, iCell2, iEdge
       
-    E = ke_cell + gd_cell - ghs_cell
+    E = ke_cell + gd_cell + ghs_cell
     
     iap_gd_edge = sqrt(gd_edge)
     
@@ -216,7 +216,8 @@ contains
     type(state_type),  intent(inout) :: state
     type(static_type), intent(in   ) :: static
 
-    state%total_energy = sum(state%edge%iap_u**2 * areaEdge) + sum((state%cell%gd + static%cell%ghs)**2 * areaCell)
+    !state%total_energy = sum(state%edge%iap_u**2 * areaEdge) + sum((state%cell%gd + static%cell%ghs)**2 * areaCell)
+    state%total_energy = sum(state%edge%iap_u**2 * areaEdge) + sum((state%cell%gd**2 + 2.d0 * state%cell%gd * static%cell%ghs) * areaCell)
 
   end subroutine calc_total_energy
 
