@@ -1,11 +1,11 @@
 &time_control
-run_days = 33
-dt       = 360
+run_days = 5
+dt       = 180
 /
 
 &io_control
 history_periods    = '1 days'
-output_file_prefix = 'rh.40962'
+output_file_prefix = 'sgf.163842'
 frames_per_file    = '2000 months'
 /
 
@@ -14,12 +14,12 @@ conserve_energy        = .true.
 time_scheme            = 2
 adv_order              = 2
 adv_mono               = .true.
-interp_pv_order        = 3
+interp_pv_order        = 5
 flux_4th_order_correct = .false.
-mesh_file_path         = './x1.40962.grid.nc'
+mesh_file_path         = './x1.163842.grid.nc'
 /
 
 &test_case
 ! Choose from 'mountain_zonal_flow', 'steady_geostrophic_flow', 'rossby_haurwitz_wave', 'linearized_rossby_wave'
-case_name = 'rossby_haurwitz_wave'
+case_name = 'steady_geostrophic_flow'
 /

@@ -51,9 +51,9 @@ contains
 
   subroutine math_inv_matrix(n, A, B)
 
-    integer, intent(in) :: n
+    integer        , intent(in   ) :: n
     real(real_kind), intent(inout) :: A(n,n)
-    real(real_kind), intent(out)   :: B(n,n)
+    real(real_kind), intent(out  ) :: B(n,n)
 
     real(real_kind) C(n,n)
     integer ipiv(n)
