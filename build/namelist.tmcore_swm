@@ -1,6 +1,6 @@
 &time_control
-run_days = 33
-dt       = 360
+run_days = 25
+dt       = 240
 /
 
 &io_control
@@ -23,5 +23,5 @@ mesh_file_path         = './x1.40962.grid.nc'
 
 &test_case
 ! Choose from 'mountain_zonal_flow', 'steady_geostrophic_flow', 'rossby_haurwitz_wave', 'linearized_rossby_wave'
-case_name = 'rossby_haurwitz_wave'
+case_name = 'mountain_zonal_flow'
 /
