@@ -69,7 +69,6 @@ set(source_files
   src/utils/math_mod.F90
   src/utils/poly_fit_mod.F90
   src/utils/random_number_mod.F90
-  src/utils/delaunay_voronoi_mod.F90
   src/core/params_mod.F90
   src/core/mesh_mod.F90
   src/core/static_mod.F90
@@ -101,6 +100,3 @@ target_link_libraries(test_tmcore_swm.exe tmcore)
 
 add_executable(test_tmcore_adv.exe src/core/test_tmcore_adv.F90)
 target_link_libraries(test_tmcore_adv.exe tmcore)
-
-add_executable(gen_mesh.exe src/tools/gen_mesh.F90)
-target_link_libraries(gen_mesh.exe tmcore)
