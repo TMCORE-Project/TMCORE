@@ -32,12 +32,8 @@
 *.out
 *.app
 
-# CMake files
-CMakeCache.txt
-CMakeFiles/
-Makefile
-cmake_install.cmake
-build/lib
+# Build files
+build
 
 # Data
 *.nc
