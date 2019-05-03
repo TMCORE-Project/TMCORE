@@ -4,3 +4,6 @@
 [submodule "lib/datetime"]
 	path = lib/datetime
 	url = https://github.com/dongli/fortran-datetime
+[submodule "lib/fiona"]
+	path = lib/fiona
+	url = https://github.com/dongli/fiona

@@ -2,6 +2,7 @@ module history_mod
 
   use params_mod
   use mesh_mod
+  use time_mod
   use io_mod
   use log_mod
   use string_mod
@@ -25,7 +26,7 @@ contains
 
   subroutine history_init()
 
-    call io_init()
+    call io_init(time_units, start_time_format, time_add_alert, time_is_alerted)
 
     if (output_file_prefix /= 'N/A') then
       call io_create_dataset(desc=case_name, file_prefix=output_file_prefix, frames_per_file=frames_per_file)
@@ -33,12 +34,12 @@ contains
       call io_create_dataset(desc=case_name, file_prefix=case_name, frames_per_file=frames_per_file)
     end if
 
-    call io_add_meta('source',        'TMCORE')
-    call io_add_meta('dt',            dt)
-    call io_add_meta('time_scheme',   time_scheme)
-    call io_add_meta('author',        'N/A')
-    call io_add_meta('on_a_sphere',   'YES')
-    call io_add_meta('sphere_radius', radius)
+    call io_add_att('source',         'TMCORE')
+    call io_add_att('dt',             dt)
+    call io_add_att('time_scheme',    time_scheme)
+    call io_add_att('author',         'N/A')
+    call io_add_att('on_a_sphere',    'YES')
+    call io_add_att('sphere_radius',  radius)
     ! Dimensions
     call io_add_dim('Time',           add_var=.true.)
     call io_add_dim('nCells',         size=nCells)

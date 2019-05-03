@@ -10,7 +10,7 @@ module mesh_mod
   integer nCells
   integer nEdges
   integer nVertices
-  integer vertexDegree
+  integer vertexDegree                                    ! The maximum number of cells connected to a dual cell (or the number of corners in a dual cell)
   integer maxEdges
   integer maxEdges2
   integer, allocatable :: nEdgesOnCell(:)                 ! Number of edges on a given cell
