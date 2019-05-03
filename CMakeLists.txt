@@ -52,7 +52,6 @@ else ()
 endif ()
 
 add_subdirectory(lib/container)
-include_directories(${CMAKE_BINARY_DIR}/fortran_container)
 
 add_subdirectory(lib/datetime)
 
@@ -88,8 +87,6 @@ set(source_files
   src/test_cases/adv/cosine_bell_rotation_test_mod.F90
   src/test_cases/adv/deformation_flow_test_mod.F90
 )
-
-set(CMAKE_Fortran_MODULE_DIRECTORY "${CMAKE_BINARY_DIR}/.mods")
 
 add_library(tmcore ${source_files})
 target_link_libraries(tmcore fortran_datetime fortran_container netcdf netcdff ${LAPACK_LIBRARIES})
