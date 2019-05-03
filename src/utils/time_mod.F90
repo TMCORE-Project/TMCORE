@@ -129,7 +129,7 @@ contains
 
   end subroutine time_advance
 
-  real function time_elapsed_seconds() result(res)
+  real(8) function time_elapsed_seconds() result(res)
 
     res = elapsed_seconds
 

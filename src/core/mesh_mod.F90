@@ -3,6 +3,7 @@ module mesh_mod
   use const_mod
   use params_mod
   use log_mod
+  use io_mod
 
   implicit none
 
@@ -60,7 +61,6 @@ module mesh_mod
   integer, allocatable :: verticesOnVertex(:,:)           ! Vertex indices that saddle a given vertex
   ! Weights
   real(real_kind), allocatable :: weightsOnEdge(:,:)      ! Weights to reconstruct tangential velocities
-  real(real_kind), allocatable :: meshDensity(:)          ! The value of the generating density function at each cell center
 
   real(real_kind), allocatable :: fCell(:)                ! Coriolis coefficients on a given cell
   real(real_kind), allocatable :: fVertex(:)              ! Coriolis coefficients on a given vertex
@@ -69,43 +69,15 @@ contains
 
   subroutine mesh_init()
 
-    use netcdf
-
-    integer ncid, ierr
-    integer dimid, varid
     integer iCell, iVertex, i
-    logical file_exist
 
-    inquire(file=mesh_file_path, exist=file_exist)
-    if (.not. file_exist) then
-      call log_error('Mesh file ' // trim(mesh_file_path) // ' does not exist!')
-    end if
-
-    ierr = nf90_open(mesh_file_path, nf90_nowrite, ncid)
-
-    ierr = nf90_inq_dimid(ncid, 'nCells', dimid)
-
-    ierr = nf90_inquire_dimension(ncid, dimid, len=nCells)
-
-    ierr = nf90_inq_dimid(ncid, 'nEdges', dimid)
-
-    ierr = nf90_inquire_dimension(ncid, dimid, len=nEdges)
-
-    ierr = nf90_inq_dimid(ncid, 'nVertices', dimid)
-
-    ierr = nf90_inquire_dimension(ncid, dimid, len=nVertices)
-
-    ierr = nf90_inq_dimid(ncid, 'vertexDegree', dimid)
-
-    ierr = nf90_inquire_dimension(ncid, dimid, len=vertexDegree)
-
-    ierr = nf90_inq_dimid(ncid, 'maxEdges', dimid)
-
-    ierr = nf90_inquire_dimension(ncid, dimid, len=maxEdges)
-
-    ierr = nf90_inq_dimid(ncid, 'maxEdges2', dimid)
-
-    ierr = nf90_inquire_dimension(ncid, dimid, len=maxEdges2)
+    call io_create_dataset('mesh', file_path=mesh_file_path, mode='input')
+    call io_get_dim('mesh', 'nCells',       size=nCells)
+    call io_get_dim('mesh', 'nEdges',       size=nEdges)
+    call io_get_dim('mesh', 'nVertices',    size=nVertices)
+    call io_get_dim('mesh', 'vertexDegree', size=vertexDegree)
+    call io_get_dim('mesh', 'maxEdges',     size=maxEdges)
+    call io_get_dim('mesh', 'maxEdges2',    size=maxEdges2)
 
     allocate(nEdgesOnCell(nCells))
     allocate(nEdgesOnEdge(nEdges))
@@ -145,161 +117,45 @@ contains
     allocate(verticesOnEdge(2,nEdges))
     allocate(verticesOnVertex(vertexDegree,nEdges))
     allocate(weightsOnEdge(maxEdges2,nEdges))
-    allocate(meshDensity(nCells))
 
-    ierr = nf90_inq_varid(ncid, 'nEdgesOnCell', varid)
-
-    ierr = nf90_get_var(ncid, varid, nEdgesOnCell)
-
-    ierr = nf90_inq_varid(ncid, 'nEdgesOnEdge', varid)
-
-    ierr = nf90_get_var(ncid, varid, nEdgesOnEdge)
-
-    ierr = nf90_inq_varid(ncid, 'latCell', varid)
-
-    ierr = nf90_get_var(ncid, varid, latCell)
-
-    ierr = nf90_inq_varid(ncid, 'lonCell', varid)
-
-    ierr = nf90_get_var(ncid, varid, lonCell)
-
-    ierr = nf90_inq_varid(ncid, 'xCell', varid)
-
-    ierr = nf90_get_var(ncid, varid, xCell)
-
-    ierr = nf90_inq_varid(ncid, 'yCell', varid)
-
-    ierr = nf90_get_var(ncid, varid, yCell)
-
-    ierr = nf90_inq_varid(ncid, 'zCell', varid)
-
-    ierr = nf90_get_var(ncid, varid, zCell)
-
-    ierr = nf90_inq_varid(ncid, 'latEdge', varid)
-
-    ierr = nf90_get_var(ncid, varid, latEdge)
-
-    ierr = nf90_inq_varid(ncid, 'lonEdge', varid)
-
-    ierr = nf90_get_var(ncid, varid, lonEdge)
-
-    ierr = nf90_inq_varid(ncid, 'xEdge', varid)
-
-    ierr = nf90_get_var(ncid, varid, xEdge)
-
-    ierr = nf90_inq_varid(ncid, 'yEdge', varid)
-
-    ierr = nf90_get_var(ncid, varid, yEdge)
-
-    ierr = nf90_inq_varid(ncid, 'zEdge', varid)
-
-    ierr = nf90_get_var(ncid, varid, zEdge)
-
-    ierr = nf90_inq_varid(ncid, 'latVertex', varid)
-
-    ierr = nf90_get_var(ncid, varid, latVertex)
-
-    ierr = nf90_inq_varid(ncid, 'lonVertex', varid)
-
-    ierr = nf90_get_var(ncid, varid, lonVertex)
-
-    ierr = nf90_inq_varid(ncid, 'xVertex', varid)
-
-    ierr = nf90_get_var(ncid, varid, xVertex)
-
-    ierr = nf90_inq_varid(ncid, 'yVertex', varid)
-
-    ierr = nf90_get_var(ncid, varid, yVertex)
-
-    ierr = nf90_inq_varid(ncid, 'zVertex', varid)
-
-    ierr = nf90_get_var(ncid, varid, zVertex)
-
-    ierr = nf90_inq_varid(ncid, 'dvEdge', varid)
-
-    ierr = nf90_get_var(ncid, varid, dvEdge)
-
-    ierr = nf90_inq_varid(ncid, 'dv1Edge', varid)
-
-    ierr = nf90_get_var(ncid, varid, dv1Edge)
-
-    ierr = nf90_inq_varid(ncid, 'dv2Edge', varid)
-
-    ierr = nf90_get_var(ncid, varid, dv2Edge)
-
-    ierr = nf90_inq_varid(ncid, 'dcEdge', varid)
-
-    ierr = nf90_get_var(ncid, varid, dcEdge)
-
-    ierr = nf90_inq_varid(ncid, 'areaCell', varid)
-
-    ierr = nf90_get_var(ncid, varid, areaCell)
-
-    ierr = nf90_inq_varid(ncid, 'areaTriangle', varid)
-
-    ierr = nf90_get_var(ncid, varid, areaTriangle)
-
-    ierr = nf90_inq_varid(ncid, 'kiteAreasOnVertex', varid)
-
-    ierr = nf90_get_var(ncid, varid, kiteAreasOnVertex)
-
-    ierr = nf90_inq_varid(ncid, 'angleEdge', varid)
-
-    ierr = nf90_get_var(ncid, varid, angleEdge)
-
-    ierr = nf90_inq_varid(ncid, 'indexToCellID', varid)
-
-    ierr = nf90_get_var(ncid, varid, indexToCellID)
-
-    ierr = nf90_inq_varid(ncid, 'indexToEdgeID', varid)
-
-    ierr = nf90_get_var(ncid, varid, indexToEdgeID)
-
-    ierr = nf90_inq_varid(ncid, 'indexToVertexID', varid)
-
-    ierr = nf90_get_var(ncid, varid, indexToVertexID)
-
-    ierr = nf90_inq_varid(ncid, 'cellsOnCell', varid)
-
-    ierr = nf90_get_var(ncid, varid, cellsOnCell)
-
-    ierr = nf90_inq_varid(ncid, 'cellsOnEdge', varid)
-
-    ierr = nf90_get_var(ncid, varid, cellsOnEdge)
-
-    ierr = nf90_inq_varid(ncid, 'cellsOnVertex', varid)
-
-    ierr = nf90_get_var(ncid, varid, cellsOnVertex)
-
-    ierr = nf90_inq_varid(ncid, 'edgesOnCell', varid)
-
-    ierr = nf90_get_var(ncid, varid, edgesOnCell)
-
-    ierr = nf90_inq_varid(ncid, 'edgesOnEdge', varid)
-
-    ierr = nf90_get_var(ncid, varid, edgesOnEdge)
-
-    ierr = nf90_inq_varid(ncid, 'edgesOnVertex', varid)
-
-    ierr = nf90_get_var(ncid, varid, edgesOnVertex)
-
-    ierr = nf90_inq_varid(ncid, 'verticesOnCell', varid)
-
-    ierr = nf90_get_var(ncid, varid, verticesOnCell)
-
-    ierr = nf90_inq_varid(ncid, 'verticesOnEdge', varid)
-
-    ierr = nf90_get_var(ncid, varid, verticesOnEdge)
-
-    ierr = nf90_inq_varid(ncid, 'weightsOnEdge', varid)
-
-    ierr = nf90_get_var(ncid, varid, weightsOnEdge)
-
-    ierr = nf90_inq_varid(ncid, 'meshDensity', varid)
-
-    ierr = nf90_get_var(ncid, varid, meshDensity)
-
-    ierr = nf90_close(ncid)
+    call io_start_input('mesh')
+    call io_input('mesh', 'latCell',           latCell)
+    call io_input('mesh', 'lonCell',           lonCell)
+    call io_input('mesh', 'xCell',             xCell)
+    call io_input('mesh', 'yCell',             yCell)
+    call io_input('mesh', 'zCell',             zCell)
+    call io_input('mesh', 'indexToCellID',     indexToCellID)
+    call io_input('mesh', 'lonEdge',           lonEdge)
+    call io_input('mesh', 'latEdge',           latEdge)
+    call io_input('mesh', 'xEdge',             xEdge)
+    call io_input('mesh', 'yEdge',             yEdge)
+    call io_input('mesh', 'zEdge',             zEdge)
+    call io_input('mesh', 'indexToEdgeID',     indexToEdgeID)
+    call io_input('mesh', 'lonVertex',         lonVertex)
+    call io_input('mesh', 'latVertex',         latVertex)
+    call io_input('mesh', 'xVertex',           xVertex)
+    call io_input('mesh', 'yVertex',           yVertex)
+    call io_input('mesh', 'zVertex',           zVertex)
+    call io_input('mesh', 'indexToVertexID',   indexToVertexID)
+    call io_input('mesh', 'nEdgesOnCell',      nEdgesOnCell)
+    call io_input('mesh', 'nEdgesOnEdge',      nEdgesOnEdge)
+    call io_input('mesh', 'cellsOnCell',       cellsOnCell)
+    call io_input('mesh', 'cellsOnEdge',       cellsOnEdge)
+    call io_input('mesh', 'edgesOnCell',       edgesOnCell)
+    call io_input('mesh', 'edgesOnEdge',       edgesOnEdge)
+    call io_input('mesh', 'verticesOnCell',    verticesOnCell)
+    call io_input('mesh', 'verticesOnEdge',    verticesOnEdge)
+    call io_input('mesh', 'edgesOnVertex',     edgesOnVertex)
+    call io_input('mesh', 'cellsOnVertex',     cellsOnVertex)
+    call io_input('mesh', 'weightsOnEdge',     weightsOnEdge)
+    call io_input('mesh', 'dvEdge',            dvEdge)
+    call io_input('mesh', 'dv1Edge',           dv1Edge)
+    call io_input('mesh', 'dv2Edge',           dv2Edge)
+    call io_input('mesh', 'dcEdge',            dcEdge)
+    call io_input('mesh', 'angleEdge',         angleEdge)
+    call io_input('mesh', 'areaCell',          areaCell)
+    call io_input('mesh', 'areaTriangle',      areaTriangle)
+    call io_input('mesh', 'kiteAreasOnVertex', kiteAreasOnVertex)
 
     ! Derived quantities
     allocate(nCellsOnVertex(nVertices))
@@ -397,7 +253,6 @@ contains
     if (allocated(verticesOnCell))    deallocate(verticesOnCell)
     if (allocated(verticesOnEdge))    deallocate(verticesOnEdge)
     if (allocated(weightsOnEdge))     deallocate(weightsOnEdge)
-    if (allocated(meshDensity))       deallocate(meshDensity)
     if (allocated(nCellsOnVertex))    deallocate(nCellsOnVertex)
     if (allocated(areaEdge))          deallocate(areaEdge)
     if (allocated(fCell))             deallocate(fCell)

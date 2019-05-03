@@ -38,6 +38,7 @@ contains
     call log_init()
     call time_init()
     call timer_init()
+    call io_init(time_units, start_time_format, time_add_alert, time_is_alerted)
     call mesh_init()
     call adv_scheme_init()
     call static_init()
@@ -68,7 +69,7 @@ contains
     do while (.not. time_is_finished())
       call time_integrate(spatial_operators, update_state)
       call time_advance()
-      if (time_is_alerted('hist0.output')) call history_write(state(old), static)
+      if (time_is_alerted('h0.output')) call history_write(state(old), static)
       call log_step()
     end do
 

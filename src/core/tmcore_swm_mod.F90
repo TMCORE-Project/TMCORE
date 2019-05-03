@@ -31,6 +31,7 @@ contains
     call params_parse_namelist(namelist_file_path)
     call log_init()
     call time_init()
+    call io_init(time_units, start_time_format, time_add_alert, time_is_alerted)
     call mesh_init()
     call adv_scheme_init()
     call static_init()
@@ -75,7 +76,7 @@ contains
       call curl_operator                (state(old)%edge  %u  , state(old)%vertex%vor                        )
       call calc_pv_on_vertex            (state(old)%vertex%vor, state(old)%vertex%gd   , state(old)%vertex%pv)
       call diag_run(state(old), static)
-      if (time_is_alerted('hist0.output')) call history_write(state(old), static)
+      if (time_is_alerted('h0.output')) call history_write(state(old), static)
       call log_step()
     end do
 
