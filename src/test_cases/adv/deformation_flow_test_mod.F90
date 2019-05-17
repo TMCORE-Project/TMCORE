@@ -25,16 +25,20 @@ contains
   subroutine deformation_flow_test_set_initial_condition()
 
     real(real_kind) lon1, lat1, lon2, lat2, r1, r2, r, b, c
+    real(real_kind) x1, y1, z1, x2, y2, z2, d1, d2
     integer iCell
 
     static%cell%ghs = 0.0d0
 
+    lon1 = pi * 5.0d0 / 6.0d0
+    lat1 = 0.0d0
+    lon2 = pi * 7.0d0 / 6.0d0
+    lat2 = 0.0d0
+    call cartesian_transform(lon1, lat1, x1, y1, z1)
+    call cartesian_transform(lon2, lat2, x2, y2, z2)
+
     select case (string_split(subcase_name, 2, ':'))
     case ('slotted_cylinders')
-      lon1 = pi * 5.0d0 / 6.0d0
-      lat1 = 0.0d0
-      lon2 = pi * 7.0d0 / 6.0d0
-      lat2 = 0.0d0
       r = 0.5d0 * radius
       b = 0.1d0 * g
       c = 1.0d0 * g
@@ -54,7 +58,11 @@ contains
     case ('cosine_bells')
 
     case ('gaussian_hills')
-
+      do iCell = lbound(state(1)%cell%gd, 1), ubound(state(1)%cell%gd, 1)
+        d1 = (x1 - xCell(iCell))**2 + (y1 - yCell(iCell))**2 + (z1 - zCell(iCell))**2
+        d2 = (x2 - xCell(iCell))**2 + (y2 - yCell(iCell))**2 + (z2 - zCell(iCell))**2
+        state(1)%cell%gd(iCell) = 0.95 * (exp(-5.0 * d1) + exp(-5 * d2))
+      end do
     case default
       call log_error('Unknown subcase_name ' // trim(subcase_name) // '!')
     end select
