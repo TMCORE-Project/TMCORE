@@ -81,6 +81,8 @@ contains
     call io_add_var('h0', 'verticesOnEdge', long_name='Vertex indices on the edge',                  units='1',      dim_names=['TWO         ', 'nEdges      '], data_type='integer')
     ! Dynamical variables
     call io_add_var('h0', 'u',              long_name='Normal wind on the edge',                     units='m s-1',  dim_names=['nEdges   ', 'Time     '],       data_type='real(8)')
+    call io_add_var('h0', 'zonalWind',      long_name='Zonal Wind',                                  units='m s-1',  dim_names=['nCells   ', 'Time     '],       data_type='real(8)')
+    call io_add_var('h0', 'merdionalWind',  long_name='Merdional Wind',                              units='m s-1',  dim_names=['nCells   ', 'Time     '],       data_type='real(8)')
     call io_add_var('h0', 'h',              long_name='Geopotential height on the cell',             units='m',      dim_names=['nCells   ', 'Time     '],       data_type='real(8)')
     call io_add_var('h0', 'pv',             long_name='Potential vorticity on the cell',             units='',       dim_names=['nVertices', 'Time     '],       data_type='real(8)')
     call io_add_var('h0', 'div',            long_name='Divergence',                                  units='s-1',    dim_names=['nCells   ', 'Time     '],       data_type='real(8)')
@@ -137,6 +139,8 @@ contains
     call io_output('h0', 'verticesOnCell',  verticesOnCell)
     call io_output('h0', 'verticesOnEdge',  verticesOnEdge)
     call io_output('h0', 'u',               state%edge%u)
+    call io_output('h0', 'zonalWind',       state%cell%u)
+    call io_output('h0', 'merdionalWind',   state%cell%v)
     call io_output('h0', 'h',               (state%cell%gd + static%cell%ghs) / g)
     call io_output('h0', 'pv',              state%vertex%pv)
     call io_output('h0', 'div',             state%cell%div)

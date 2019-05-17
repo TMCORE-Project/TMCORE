@@ -75,6 +75,9 @@ set(source_files
   src/core/operators_mod.F90
   src/core/adv_schemes/adv_scheme_sg11_mod.F90
   src/core/adv_schemes/adv_scheme_mod.F90
+  src/core/vector_reconstruction/mpas_rbf_interpolation.F90
+  src/core/vector_reconstruction/mpas_vector_operations.F90
+  src/core/vector_reconstruction/mpas_vector_reconstruction.F90
   src/core/diag_mod.F90
   src/core/time_scheme_mod.F90
   src/core/tmcore_adv_mod.F90

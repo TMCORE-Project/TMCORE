@@ -34,15 +34,19 @@ module mesh_mod
   real(real_kind), allocatable :: yVertex(:)
   real(real_kind), allocatable :: zVertex(:)
   ! Geometric measures
-  real(real_kind), allocatable :: dvEdge(:)               ! Distance in meters between the vertices that saddle a given edge
-  real(real_kind), allocatable :: dv1Edge(:)              ! Distance in meters between vertex 1 and edge point
-  real(real_kind), allocatable :: dv2Edge(:)              ! Distance in meters between vertex 2 and edge point
-  real(real_kind), allocatable :: dcEdge(:)               ! Distance in meters between the cells that saddle a given edge
-  real(real_kind), allocatable :: areaCell(:)             ! Area in square meters for a given cell of the primary mesh
-  real(real_kind), allocatable :: areaEdge(:)             ! Area in square meters for a given edge point
-  real(real_kind), allocatable :: areaTriangle(:)         ! Area in square meters for a given triangle of the dual mesh
-  real(real_kind), allocatable :: kiteAreasOnVertex(:,:)  ! The intersection area of areaTriangle with each cell that radiates from a given vertex
-  real(real_kind), allocatable :: angleEdge(:)            ! Angle in radians an edge’s normal vector makes with the local eastward direction
+  real(real_kind), allocatable :: dvEdge(:)                     ! Distance in meters between the vertices that saddle a given edge
+  real(real_kind), allocatable :: dv1Edge(:)                    ! Distance in meters between vertex 1 and edge point
+  real(real_kind), allocatable :: dv2Edge(:)                    ! Distance in meters between vertex 2 and edge point
+  real(real_kind), allocatable :: dcEdge(:)                     ! Distance in meters between the cells that saddle a given edge
+  real(real_kind), allocatable :: areaCell(:)                   ! Area in square meters for a given cell of the primary mesh
+  real(real_kind), allocatable :: areaEdge(:)                   ! Area in square meters for a given edge point
+  real(real_kind), allocatable :: areaTriangle(:)               ! Area in square meters for a given triangle of the dual mesh
+  real(real_kind), allocatable :: kiteAreasOnVertex(:,:)        ! The intersection area of areaTriangle with each cell that radiates from a given vertex
+  real(real_kind), allocatable :: angleEdge(:)                  ! Angle in radians an edge’s normal vector makes with the local eastward direction
+  real(real_kind), allocatable :: edgeNormalVectors(:,:  )      ! The unit vector normal to the edge and tangent to the sphere
+  real(real_kind), allocatable :: cellTangentPlane(:,:,:)       ! 2 orthogonal unit vectors in the tangent plane of each cell. The first unit vector is chosen to point toward the center of the first edge on the cell.
+  real(real_kind), allocatable :: localVerticalUnitVectors(:,:) ! the unit normal vector of the tangent plane at the center of each cell
+  
   integer, allocatable :: nSignEdge(:,:)
   integer, allocatable :: tSignEdge(:,:)
   real(real_kind) totalArea
@@ -60,8 +64,9 @@ module mesh_mod
   integer, allocatable :: verticesOnEdge(:,:)             ! Vertex indices that saddle a given edge
   integer, allocatable :: verticesOnVertex(:,:)           ! Vertex indices that saddle a given vertex
   ! Weights
-  real(real_kind), allocatable :: weightsOnEdge(:,:)      ! Weights to reconstruct tangential velocities
-
+  real(real_kind), allocatable :: weightsOnEdge(:,:)        ! Weights to reconstruct tangential velocities
+  real(real_kind), allocatable :: coeffs_reconstruct(:,:,:) ! Weights to reconstruct vector on cells
+  
   real(real_kind), allocatable :: fCell(:)                ! Coriolis coefficients on a given cell
   real(real_kind), allocatable :: fVertex(:)              ! Coriolis coefficients on a given vertex
   
@@ -117,7 +122,11 @@ contains
     allocate(verticesOnEdge(2,nEdges))
     allocate(verticesOnVertex(vertexDegree,nEdges))
     allocate(weightsOnEdge(maxEdges2,nEdges))
-
+    allocate(coeffs_reconstruct(3,maxEdges,nCells))
+    allocate(edgeNormalVectors(3,nEdges))
+    allocate(cellTangentPlane(3,2,nCells))
+    allocate(localVerticalUnitVectors(3,nCells))
+    
     call io_start_input('mesh')
     call io_input('mesh', 'latCell',           latCell)
     call io_input('mesh', 'lonCell',           lonCell)
@@ -218,48 +227,51 @@ contains
 
   subroutine mesh_final()
 
-    if (allocated(nEdgesOnCell))      deallocate(nEdgesOnCell)
-    if (allocated(nEdgesOnEdge))      deallocate(nEdgesOnEdge)
-    if (allocated(latCell))           deallocate(latCell)
-    if (allocated(lonCell))           deallocate(lonCell)
-    if (allocated(xCell))             deallocate(xCell)
-    if (allocated(yCell))             deallocate(yCell)
-    if (allocated(zCell))             deallocate(zCell)
-    if (allocated(latEdge))           deallocate(latEdge)
-    if (allocated(lonEdge))           deallocate(lonEdge)
-    if (allocated(xEdge))             deallocate(xEdge)
-    if (allocated(yEdge))             deallocate(yEdge)
-    if (allocated(zEdge))             deallocate(zEdge)
-    if (allocated(latVertex))         deallocate(latVertex)
-    if (allocated(lonVertex))         deallocate(lonVertex)
-    if (allocated(xVertex))           deallocate(xVertex)
-    if (allocated(yVertex))           deallocate(yVertex)
-    if (allocated(zVertex))           deallocate(zVertex)
-    if (allocated(dvEdge))            deallocate(dvEdge)
-    if (allocated(dcEdge))            deallocate(dcEdge)
-    if (allocated(areaCell))          deallocate(areaCell)
-    if (allocated(areaTriangle))      deallocate(areaTriangle)
-    if (allocated(kiteAreasOnVertex)) deallocate(kiteAreasOnVertex)
-    if (allocated(angleEdge))         deallocate(angleEdge)
-    if (allocated(indexToCellID))     deallocate(indexToCellID)
-    if (allocated(indexToEdgeID))     deallocate(indexToEdgeID)
-    if (allocated(indexToVertexID))   deallocate(indexToVertexID)
-    if (allocated(cellsOnCell))       deallocate(cellsOnCell)
-    if (allocated(cellsOnEdge))       deallocate(cellsOnEdge)
-    if (allocated(cellsOnVertex))     deallocate(cellsOnVertex)
-    if (allocated(edgesOnCell))       deallocate(edgesOnCell)
-    if (allocated(edgesOnEdge))       deallocate(edgesOnEdge)
-    if (allocated(edgesOnVertex))     deallocate(edgesOnVertex)
-    if (allocated(verticesOnCell))    deallocate(verticesOnCell)
-    if (allocated(verticesOnEdge))    deallocate(verticesOnEdge)
-    if (allocated(weightsOnEdge))     deallocate(weightsOnEdge)
-    if (allocated(nCellsOnVertex))    deallocate(nCellsOnVertex)
-    if (allocated(areaEdge))          deallocate(areaEdge)
-    if (allocated(fCell))             deallocate(fCell)
-    if (allocated(fVertex))           deallocate(fVertex)
-    if (allocated(nSignEdge))         deallocate(nSignEdge)
-    if (allocated(tSignEdge))         deallocate(tSignEdge)
-
+    if (allocated(nEdgesOnCell))             deallocate(nEdgesOnCell)
+    if (allocated(nEdgesOnEdge))             deallocate(nEdgesOnEdge)
+    if (allocated(latCell))                  deallocate(latCell)
+    if (allocated(lonCell))                  deallocate(lonCell)
+    if (allocated(xCell))                    deallocate(xCell)
+    if (allocated(yCell))                    deallocate(yCell)
+    if (allocated(zCell))                    deallocate(zCell)
+    if (allocated(latEdge))                  deallocate(latEdge)
+    if (allocated(lonEdge))                  deallocate(lonEdge)
+    if (allocated(xEdge))                    deallocate(xEdge)
+    if (allocated(yEdge))                    deallocate(yEdge)
+    if (allocated(zEdge))                    deallocate(zEdge)
+    if (allocated(latVertex))                deallocate(latVertex)
+    if (allocated(lonVertex))                deallocate(lonVertex)
+    if (allocated(xVertex))                  deallocate(xVertex)
+    if (allocated(yVertex))                  deallocate(yVertex)
+    if (allocated(zVertex))                  deallocate(zVertex)
+    if (allocated(dvEdge))                   deallocate(dvEdge)
+    if (allocated(dcEdge))                   deallocate(dcEdge)
+    if (allocated(areaCell))                 deallocate(areaCell)
+    if (allocated(areaTriangle))             deallocate(areaTriangle)
+    if (allocated(kiteAreasOnVertex))        deallocate(kiteAreasOnVertex)
+    if (allocated(angleEdge))                deallocate(angleEdge)
+    if (allocated(indexToCellID))            deallocate(indexToCellID)
+    if (allocated(indexToEdgeID))            deallocate(indexToEdgeID)
+    if (allocated(indexToVertexID))          deallocate(indexToVertexID)
+    if (allocated(cellsOnCell))              deallocate(cellsOnCell)
+    if (allocated(cellsOnEdge))              deallocate(cellsOnEdge)
+    if (allocated(cellsOnVertex))            deallocate(cellsOnVertex)
+    if (allocated(edgesOnCell))              deallocate(edgesOnCell)
+    if (allocated(edgesOnEdge))              deallocate(edgesOnEdge)
+    if (allocated(edgesOnVertex))            deallocate(edgesOnVertex)
+    if (allocated(verticesOnCell))           deallocate(verticesOnCell)
+    if (allocated(verticesOnEdge))           deallocate(verticesOnEdge)
+    if (allocated(weightsOnEdge))            deallocate(weightsOnEdge)
+    if (allocated(nCellsOnVertex))           deallocate(nCellsOnVertex)
+    if (allocated(areaEdge))                 deallocate(areaEdge)
+    if (allocated(fCell))                    deallocate(fCell)
+    if (allocated(fVertex))                  deallocate(fVertex)
+    if (allocated(nSignEdge))                deallocate(nSignEdge)
+    if (allocated(tSignEdge))                deallocate(tSignEdge)
+    if (allocated(edgeNormalVectors))        deallocate(edgeNormalVectors)
+    if (allocated(cellTangentPlane))         deallocate(cellTangentPlane)
+    if (allocated(localVerticalUnitVectors)) deallocate(localVerticalUnitVectors)
+    
   end subroutine mesh_final
 
 end module mesh_mod

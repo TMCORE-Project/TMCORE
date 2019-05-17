@@ -299,7 +299,7 @@ contains
       !call lapack_inv_matrix(n, PTWTWP(1:n,1:n), B(1:n,1:n))
       B     (1:n,1:m) = matmul(B(1:n,1:n), PTWTW(1:n,1:m))
 
-      ! Calculate second-order derivative weights.
+      ! Calculate 3rd-order derivative weights.
       do i = 1, nEdgesOnCell(iCell)
         iEdge = edgesOnCell(i,iCell)
         k = merge(1, 2, iCell == cellsOnEdge(1,iEdge))
@@ -375,7 +375,7 @@ contains
       !call lapack_inv_matrix(n, PTWTWP(1:n,1:n), B(1:n,1:n))
       B     (1:n,1:m) = matmul(B(1:n,1:n), PTWTW(1:n,1:m))
 
-      ! Calculate second-order derivative weights.
+      ! Calculate 4th-order derivative weights.
       do i = 1, nEdgesOnCell(iCell)
         iEdge = edgesOnCell(i,iCell)
         k = merge(1, 2, iCell == cellsOnEdge(1,iEdge))

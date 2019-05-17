@@ -8,6 +8,8 @@ module tmcore_swm_mod
   use state_mod
   use tend_mod
   use operators_mod
+  use mpas_vector_operations
+  use mpas_vector_reconstruction
   use diag_mod
   use history_mod
   use time_scheme_mod
@@ -39,7 +41,9 @@ contains
     call tend_init()
     call diag_init(calc_total_mass, calc_total_energy, calc_total_potential_enstropy, calc_total_absolute_vorticity)
     call history_init()
-
+    call mpas_initialize_vectors
+    call mpas_init_reconstruct
+    
   end subroutine tmcore_swm_init
 
   subroutine tmcore_swm_final()
@@ -61,7 +65,9 @@ contains
     call scalar_c2v_interp_operator   (state(old)%cell  %gd , state(old)%vertex%gd                          )
     call curl_operator                (state(old)%edge  %u  , state(old)%vertex%vor                         )
     call calc_pv_on_vertex            (state(old)%vertex%vor, state(old)%vertex%gd   , state(old)%vertex%pv )
-
+    
+    call mpas_reconstruct(state(old)%edge%u, state(old)%cell%uX, state(old)%cell%uY, state(old)%cell%uZ, state(old)%cell%u, state(old)%cell%v )
+    
     call diag_run(state(old), static)
     call history_write(state(old), static)
     call log_step()
@@ -75,6 +81,7 @@ contains
       call scalar_c2v_interp_operator   (state(old)%cell  %gd , state(old)%vertex%gd                         )
       call curl_operator                (state(old)%edge  %u  , state(old)%vertex%vor                        )
       call calc_pv_on_vertex            (state(old)%vertex%vor, state(old)%vertex%gd   , state(old)%vertex%pv)
+      call mpas_reconstruct             (state(old)%edge  %u  , state(old)%cell  %uX   , state(old)%cell  %uY, state(old)%cell%uZ, state(old)%cell%u, state(old)%cell%v )
       call diag_run(state(old), static)
       if (time_is_alerted('h0.output')) call history_write(state(old), static)
       call log_step()
@@ -91,6 +98,7 @@ contains
     call scalar_c2e_interp_operator   (state%cell  %gd     , state%edge  %gd                    )
     call add_upwind_correction_on_cell(state%cell  %gd     , state%edge  %iap_u, state%edge%gd  )
     call inverse_iap_swm_operator     (state%edge  %gd     , state%edge  %iap_u, state%edge%u   )
+    call mpas_reconstruct             (state%edge  %u      , state%cell  %uX   , state%cell%uY, state%cell%uZ, state%cell%u, state%cell%v )
     
     ! Calculate tend of geopotential depth (gd)
     call calc_gd_tend_on_cell         (state%edge  %u      , state%edge  %gd   , tend %cell%gd  )
@@ -113,7 +121,7 @@ contains
     call calc_tangent_vor_flux        (state%edge  %u      , state%edge  %gd   , state%edge  %pv  , state%edge  %pv_flx                                                      )
     call calc_u_tend_on_edge          (state%edge  %u      , state%cell  %ke   , state%cell  %gd  , state%edge  %gd     , static%cell  %ghs ,                                &
                                        state%edge  %pv_flx , tend %edge  %gd   , tend %edge  %u   , tend %edge  %iap_u                                                       )
-
+    
   end subroutine spatial_operators
 
   subroutine calc_gd_tend_on_cell(u_edge, gd_edge, gd_tend_cell)

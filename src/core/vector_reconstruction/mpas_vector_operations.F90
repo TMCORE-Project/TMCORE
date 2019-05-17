@@ -18,10 +18,9 @@
 !-----------------------------------------------------------------------
 module mpas_vector_operations
 
-   use mpas_derived_types
-   use mpas_pool_routines
-   use mpas_constants
-   use mpas_log
+   use const_mod
+   use mesh_mod
+   use log_mod
 
    implicit none
    private
@@ -45,7 +44,6 @@ module mpas_vector_operations
              mpas_unit_vec_in_r3, &
              mpas_cross_product_in_r3, &
              mpas_tangential_velocity, &
-             mpas_tangential_vector_1d, &
              mpas_vector_R3Cell_to_2DEdge, &
              mpas_vector_R3Cell_to_normalVectorEdge, &
              mpas_vector_R3_to_LonLatR, &
@@ -76,9 +74,9 @@ contains
 !> \details
 !> This routine calculates the magnitude of a 3d vector.
 !-----------------------------------------------------------------------
-  real (kind=RKIND) function mpas_vec_mag_in_r3(xin)!{{{
+  real(real_kind) function mpas_vec_mag_in_r3(xin)!{{{
     implicit none
-    real (kind=RKIND), dimension(3), intent(in) :: xin !< Input: Vector
+    real(real_kind), dimension(3), intent(in) :: xin !< Input: Vector
     mpas_vec_mag_in_r3 = sqrt(xin(1)**2 + xin(2)**2 + xin(3)**2)
   end function mpas_vec_mag_in_r3!}}}
 
@@ -94,8 +92,8 @@ contains
 !-----------------------------------------------------------------------
   subroutine mpas_unit_vec_in_r3(xin)!{{{
     implicit none
-    real (kind=RKIND), dimension(3), intent(inout) :: xin !< Input/Output: Vector and unit vector
-    real (kind=RKIND) :: mag
+    real(real_kind), dimension(3), intent(inout) :: xin !< Input/Output: Vector and unit vector
+    real(real_kind) :: mag
     mag = sqrt(xin(1)**2+xin(2)**2+xin(3)**2)
     xin(:) = xin(:) / mag
   end subroutine mpas_unit_vec_in_r3!}}}
@@ -111,9 +109,9 @@ contains
 !> This routine computes the cross product of two input vectors.
 !-----------------------------------------------------------------------
   subroutine mpas_cross_product_in_r3(p_1,p_2,p_out)!{{{
-    real (kind=RKIND), intent(in) :: p_1 (3) !< Input: Vector 1
-    real (kind=RKIND), intent(in) :: p_2 (3) !< Input: Vector 2
-    real (kind=RKIND), intent(out) :: p_out (3) !< Output: Cross product of vector 1 and vector 2
+    real(real_kind), intent(in ) :: p_1 (3) !< Input: Vector 1
+    real(real_kind), intent(in ) :: p_2 (3) !< Input: Vector 2
+    real(real_kind), intent(out) :: p_out (3) !< Output: Cross product of vector 1 and vector 2
 
     p_out(1) = p_1(2)*p_2(3)-p_1(3)*p_2(2)
     p_out(2) = p_1(3)*p_2(1)-p_1(1)*p_2(3)
@@ -133,8 +131,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   subroutine mpas_vector_R3Cell_to_2DEdge(vectorR3Cell, &
-      meshPool, edgeTangentVectors, includeHalo, normalVectorEdge, tangentialVectorEdge)!{{{
+   subroutine mpas_vector_R3Cell_to_2DEdge(vectorR3Cell, edgeTangentVectors, normalVectorEdge, tangentialVectorEdge)!{{{
 
       !-----------------------------------------------------------------
       !
@@ -142,17 +139,8 @@ contains
       !
       !-----------------------------------------------------------------
 
-      real (kind=RKIND), dimension(:,:,:), intent(in) :: &
-         vectorR3Cell  !< Input: 3-vector located at cell centers, in x,y,z coordinates
-
-      type (mpas_pool_type), intent(in) :: &
-         meshPool          !< Input: Mesh information
-
-      real (kind=RKIND), dimension(:,:), intent(in) :: &
-         edgeTangentVectors   !< Input: unit vector tangent to an edge
-
-      logical, intent(in) :: &
-         includeHalo !< Input: If true, halo cells and edges are included in computation
+      real(real_kind), dimension(:,:), intent(in) :: vectorR3Cell       !< Input: 3-vector located at cell centers, in x,y,z coordinates
+      real(real_kind), dimension(:,:), intent(in) :: edgeTangentVectors !< Input: unit vector tangent to an edge
 
       !-----------------------------------------------------------------
       !
@@ -160,11 +148,8 @@ contains
       !
       !-----------------------------------------------------------------
 
-      real (kind=RKIND), dimension(:,:), intent(out) :: &
-         normalVectorEdge   !< Output: normal component of vector at edge
-
-      real (kind=RKIND), dimension(:,:), intent(out) :: &
-         tangentialVectorEdge   !< Output: tangential component of vector at edge
+      real(real_kind), dimension(:), intent(out) :: normalVectorEdge     !< Output: normal component of vector at edge
+      real(real_kind), dimension(:), intent(out) :: tangentialVectorEdge !< Output: tangential component of vector at edge
 
       !-----------------------------------------------------------------
       !
@@ -172,38 +157,20 @@ contains
       !
       !-----------------------------------------------------------------
 
-      integer :: iEdge, cell1, cell2, k
-      integer, pointer :: nEdgesCompute, nVertLevels
+      integer :: iEdge, cell1, cell2
 
-      integer, dimension(:,:), pointer :: cellsOnEdge
+      real(real_kind), dimension(3) :: vectorR3Edge
 
-      real (kind=RKIND), dimension(3) :: vectorR3Edge
-      real(kind=RKIND), dimension(:,:), pointer :: edgeNormalVectors
-
-      if (includeHalo) then
-         call mpas_pool_get_dimension(meshPool, 'nEdges', nEdgesCompute)
-      else
-         call mpas_pool_get_dimension(meshPool, 'nEdgesSolve', nEdgesCompute)
-      endif
-      call mpas_pool_get_dimension(meshPool, 'nVertLevels', nVertLevels)
-
-      call mpas_pool_get_array(meshPool, 'edgeNormalVectors', edgeNormalVectors)
-      call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
-
-      do iEdge=1,nEdgesCompute
+      do iEdge=1,nEdges
          cell1 = cellsOnEdge(1,iEdge)
          cell2 = cellsOnEdge(2,iEdge)
 
-         do k=1,nVertLevels
+         ! average neighboring cell-centered vectors to the edge
+         vectorR3Edge(:) = 0.5d0*(vectorR3Cell(:,cell1) + vectorR3Cell(:,cell2))
 
-           ! average neighboring cell-centered vectors to the edge
-           vectorR3Edge(:) = 0.5_RKIND*(vectorR3Cell(:,k,cell1) + vectorR3Cell(:,k,cell2))
-
-           ! normal component at edge: take dot products with unit vectors at edge
-           normalVectorEdge(k,iEdge) = sum(vectorR3Edge(:)*edgeNormalVectors(:,iEdge))
-           tangentialVectorEdge(k,iEdge) = sum(vectorR3Edge(:)*edgeTangentVectors(:,iEdge))
-
-         enddo
+         ! normal component at edge: take dot products with unit vectors at edge
+         normalVectorEdge    (iEdge) = sum(vectorR3Edge(:)*edgeNormalVectors (:,iEdge))
+         tangentialVectorEdge(iEdge) = sum(vectorR3Edge(:)*edgeTangentVectors(:,iEdge))
       enddo
 
    end subroutine mpas_vector_R3Cell_to_2DEdge!}}}
@@ -220,8 +187,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   subroutine mpas_vector_R3Cell_to_normalVectorEdge(vectorR3Cell, &
-      meshPool, includeHalo, normalVectorEdge)!{{{
+   subroutine mpas_vector_R3Cell_to_normalVectorEdge(vectorR3Cell, normalVectorEdge)!{{{
 
       !-----------------------------------------------------------------
       !
@@ -229,14 +195,7 @@ contains
       !
       !-----------------------------------------------------------------
 
-      real (kind=RKIND), dimension(:,:,:), intent(in) :: &
-         vectorR3Cell  !< Input: 3-vector located at cell centers, in x,y,z coordinates
-
-      type (mpas_pool_type), intent(in) :: &
-         meshPool         !< Input: Mesh information
-
-      logical, intent(in) :: &
-         includeHalo !< Input: If true, halo cells and edges are included in computation
+      real(real_kind), dimension(:,:), intent(in) :: vectorR3Cell  !< Input: 3-vector located at cell centers, in x,y,z coordinates
 
       !-----------------------------------------------------------------
       !
@@ -244,8 +203,7 @@ contains
       !
       !-----------------------------------------------------------------
 
-      real (kind=RKIND), dimension(:,:), intent(out) :: &
-         normalVectorEdge   !< Output: normal component of vector at edge
+      real(real_kind), dimension(:,:), intent(out) :: normalVectorEdge   !< Output: normal component of vector at edge
 
       !-----------------------------------------------------------------
       !
@@ -253,37 +211,20 @@ contains
       !
       !-----------------------------------------------------------------
 
-      integer :: iEdge, cell1, cell2, k
-      integer, pointer :: nEdgesCompute, nVertLevels
+      integer :: iEdge, cell1, cell2
 
-      integer, dimension(:,:), pointer :: cellsOnEdge
+      real(real_kind), dimension(3) :: vectorR3Edge
+      real(real_kind), dimension(:,:), pointer :: edgeNormalVectors
 
-      real (kind=RKIND), dimension(3) :: vectorR3Edge
-      real(kind=RKIND), dimension(:,:), pointer :: edgeNormalVectors
-
-      if (includeHalo) then
-         call mpas_pool_get_dimension(meshPool, 'nEdges', nEdgesCompute)
-      else
-         call mpas_pool_get_dimension(meshPool, 'nEdgesSolve', nEdgesCompute)
-      endif
-      call mpas_pool_get_dimension(meshPool, 'nVertLevels', nVertLevels)
-
-      call mpas_pool_get_array(meshPool, 'edgeNormalVectors', edgeNormalVectors)
-      call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
-
-      do iEdge=1,nEdgesCompute
+      do iEdge=1,nEdges
          cell1 = cellsOnEdge(1,iEdge)
          cell2 = cellsOnEdge(2,iEdge)
+         
+         ! average neighboring cell-centered vectors to the edge
+         vectorR3Edge(:) = 0.5d0*(vectorR3Cell(:,cell1) + vectorR3Cell(:,cell2))
 
-         do k=1,nVertLevels
-
-           ! average neighboring cell-centered vectors to the edge
-           vectorR3Edge(:) = 0.5_RKIND*(vectorR3Cell(:,k,cell1) + vectorR3Cell(:,k,cell2))
-
-           ! normal component at edge: take dot products with unit vectors at edge
-           normalVectorEdge(k,iEdge) = sum(vectorR3Edge(:)*edgeNormalVectors(:,iEdge))
-
-         enddo
+         ! normal component at edge: take dot products with unit vectors at edge
+         normalVectorEdge(:,iEdge) = sum(vectorR3Edge(:)*edgeNormalVectors(:,iEdge))
       enddo
 
    end subroutine mpas_vector_R3Cell_to_normalVectorEdge!}}}
@@ -301,7 +242,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   subroutine mpas_tangential_velocity(normalVelocity, meshPool, includeHalo, tangentialVelocity)!{{{
+   subroutine mpas_tangential_velocity(normalVelocity, tangentialVelocity)!{{{
 
       !-----------------------------------------------------------------
       !
@@ -309,14 +250,7 @@ contains
       !
       !-----------------------------------------------------------------
 
-      real (kind=RKIND), dimension(:,:), intent(in) :: &
-         normalVelocity   !< Input: Horizontal velocity normal to edge
-
-      type (mpas_pool_type), intent(in) :: &
-         meshPool          !< Input: Mesh information
-
-      logical, intent(in) :: &
-         includeHalo !< Input: If true, halo cells and edges are included in computation
+      real(real_kind), dimension(:), intent(in ) :: normalVelocity   !< Input: Horizontal velocity normal to edge
 
       !-----------------------------------------------------------------
       !
@@ -324,8 +258,7 @@ contains
       !
       !-----------------------------------------------------------------
 
-      real (kind=RKIND), dimension(:,:), intent(out) :: &
-         tangentialVelocity   !< Output: Horizontal velocity tangent to edge
+      real(real_kind), dimension(:), intent(out) :: tangentialVelocity   !< Output: Horizontal velocity tangent to edge
 
       !-----------------------------------------------------------------
       !
@@ -334,108 +267,16 @@ contains
       !-----------------------------------------------------------------
 
       integer :: iEdge, i, k, eoe
-      integer, pointer :: nEdgesCompute, nVertLevels
-      integer, dimension(:), pointer :: nEdgesOnEdge
-      integer, dimension(:,:), pointer :: edgesOnEdge
 
-      real (kind=RKIND), dimension(:,:), pointer :: weightsOnEdge
-
-      if (includeHalo) then
-         call mpas_pool_get_dimension(meshPool, 'nEdges', nEdgesCompute)
-      else
-         call mpas_pool_get_dimension(meshPool, 'nEdgesSolve', nEdgesCompute)
-      endif
-      call mpas_pool_get_dimension(meshPool, 'nVertLevels', nVertLevels)
-
-      call mpas_pool_get_array(meshPool, 'nEdgesOnEdge', nEdgesOnEdge)
-      call mpas_pool_get_array(meshPool, 'edgesOnEdge', edgesOnEdge)
-      call mpas_pool_get_array(meshPool, 'weightsOnEdge', weightsOnEdge)
-
-      do iEdge = 1,nEdgesCompute
+      do iEdge = 1,nEdges
          do i=1,nEdgesOnEdge(iEdge)
             eoe = edgesOnEdge(i,iEdge)
-            do k=1,nVertLevels
-               tangentialVelocity(k,iEdge) = tangentialVelocity(k,iEdge) + weightsOnEdge(i,iEdge) * normalVelocity(k, eoe)
-            end do
+            
+            tangentialVelocity(iEdge) = tangentialVelocity(iEdge) + weightsOnEdge(i,iEdge) * normalVelocity(eoe)
          end do
       end do
 
    end subroutine mpas_tangential_velocity!}}}
-
-
-
-!***********************************************************************
-!
-!  routine mpas_tangential_vector_1d
-!
-!> \brief   compute tangential vector magnitude at an edge from the normal vector magnitudes
-!> \author  Matt Hoffman/Mark Petersen
-!> \date    December 2014
-!> \details
-!>  Compute tangential vector magnitude at an edge from the normal vector magnitude on the
-!>  edges of the two neighboring cells.
-!>  Based off of mpas_tangential_velocity().
-!
-!-----------------------------------------------------------------------
-
-   subroutine mpas_tangential_vector_1d(normalVector, meshPool, includeHalo, tangentialVector)!{{{
-
-      !-----------------------------------------------------------------
-      !
-      ! input variables
-      !
-      !-----------------------------------------------------------------
-
-      real (kind=RKIND), dimension(:), intent(in) :: &
-         normalVector   !< Input: Horizontal vector magnitude normal to edge
-
-      type (mpas_pool_type), intent(in) :: &
-         meshPool          !< Input: Mesh information
-
-      logical, intent(in) :: &
-         includeHalo !< Input: If true, halo cells and edges are included in computation
-
-      !-----------------------------------------------------------------
-      !
-      ! output variables
-      !
-      !-----------------------------------------------------------------
-
-      real (kind=RKIND), dimension(:), intent(out) :: &
-         tangentialVector   !< Output: Horizontal vector magnitude tangent to edge
-
-      !-----------------------------------------------------------------
-      !
-      ! local variables
-      !
-      !-----------------------------------------------------------------
-
-      integer :: iEdge, i, k, eoe
-      integer, pointer :: nEdgesCompute
-      integer, dimension(:), pointer :: nEdgesOnEdge
-      integer, dimension(:,:), pointer :: edgesOnEdge
-
-      real (kind=RKIND), dimension(:,:), pointer :: weightsOnEdge
-
-      if (includeHalo) then
-         call mpas_pool_get_dimension(meshPool, 'nEdges', nEdgesCompute)
-      else
-         call mpas_pool_get_dimension(meshPool, 'nEdgesSolve', nEdgesCompute)
-      endif
-
-      call mpas_pool_get_array(meshPool, 'nEdgesOnEdge', nEdgesOnEdge)
-      call mpas_pool_get_array(meshPool, 'edgesOnEdge', edgesOnEdge)
-      call mpas_pool_get_array(meshPool, 'weightsOnEdge', weightsOnEdge)
-
-      tangentialVector = 0.0_RKIND
-      do iEdge = 1,nEdgesCompute
-         do i=1,nEdgesOnEdge(iEdge)
-            eoe = edgesOnEdge(i,iEdge)
-            tangentialVector(iEdge) = tangentialVector(iEdge) + weightsOnEdge(i,iEdge) * normalVector(eoe)
-         end do
-      end do
-
-   end subroutine mpas_tangential_vector_1d!}}}
 
 
 !***********************************************************************
@@ -459,7 +300,7 @@ contains
       !
       !-----------------------------------------------------------------
 
-      real (kind=RKIND), intent(in) :: &
+      real(real_kind), intent(in) :: &
          lon, &!< Input: longitude, in radians, ranging [0,2*pi]
          lat   !< Input: latitude,  in radians, ranging [-pi,pi]
 
@@ -469,7 +310,7 @@ contains
       !
       !-----------------------------------------------------------------
 
-      real (kind=RKIND), dimension(3), intent(out) :: &
+      real(real_kind), dimension(3), intent(out) :: &
          zonalUnitVector,     &!< Output: zonal unit vector
          meridionalUnitVector,&!< Output: meridional unit vector
          verticalUnitVector    !< Output: vertical unit vector
@@ -480,7 +321,7 @@ contains
       !
       !-----------------------------------------------------------------
 
-      real (kind=RKIND) :: sin_lat, sin_lon, cos_lat, cos_lon
+      real(real_kind) :: sin_lat, sin_lon, cos_lat, cos_lon
 
 
       sin_lat = sin(lat)
@@ -523,10 +364,10 @@ contains
       !
       !-----------------------------------------------------------------
 
-      real (kind=RKIND), dimension(3), intent(in) :: &
+      real(real_kind), dimension(3), intent(in) :: &
          vectorR3  !< Input: vector in R3
 
-      real (kind=RKIND), intent(in) :: &
+      real(real_kind), intent(in) :: &
          lon, &!< Input: longitude, in radians, ranging [0,2*pi]
          lat   !< Input: latitude,  in radians, ranging [-pi,pi]
 
@@ -536,7 +377,7 @@ contains
       !
       !-----------------------------------------------------------------
 
-      real (kind=RKIND), dimension(3), intent(out) :: &
+      real(real_kind), dimension(3), intent(out) :: &
          vectorLonLatR   !< Output: vector in spherical coordinates
 
       !-----------------------------------------------------------------
@@ -547,8 +388,8 @@ contains
 
       integer :: i,j
 
-      real (kind=RKIND), dimension(3) :: zonalUnitVector, meridionalUnitVector, verticalUnitVector
-      real (kind=RKIND), dimension(3,3) :: rotationMatrix
+      real(real_kind), dimension(3  ) :: zonalUnitVector, meridionalUnitVector, verticalUnitVector
+      real(real_kind), dimension(3,3) :: rotationMatrix
 
       call mpas_zonal_meridional_vectors(lon, lat, zonalUnitVector, meridionalUnitVector, verticalUnitVector)
 
@@ -556,7 +397,7 @@ contains
       rotationMatrix(:,2) = meridionalUnitVector
       rotationMatrix(:,3) = verticalUnitVector
 
-      vectorLonLatR = 0.0_RKIND
+      vectorLonLatR = 0.0d0
       do i=1,3
          do j=1,3
             ! xi = R^T x
@@ -588,10 +429,10 @@ contains
       !
       !-----------------------------------------------------------------
 
-      real (kind=RKIND), dimension(3), intent(in) :: &
+      real(real_kind), dimension(3), intent(in) :: &
          vectorLonLatR   !< Input: vector in spherical coordinates
 
-      real (kind=RKIND), intent(in) :: &
+      real(real_kind), intent(in) :: &
          lon, &!< Input: longitude, in radians, ranging [0,2*pi]
          lat   !< Input: latitude,  in radians, ranging [-pi,pi]
 
@@ -601,7 +442,7 @@ contains
       !
       !-----------------------------------------------------------------
 
-      real (kind=RKIND), dimension(3), intent(out) :: &
+      real(real_kind), dimension(3), intent(out) :: &
          vectorR3  !< Output: vector in R3
 
       !-----------------------------------------------------------------
@@ -612,8 +453,8 @@ contains
 
       integer :: i,j
 
-      real (kind=RKIND), dimension(3) :: zonalUnitVector, meridionalUnitVector, verticalUnitVector
-      real (kind=RKIND), dimension(3,3) :: rotationMatrix
+      real(real_kind), dimension(3) :: zonalUnitVector, meridionalUnitVector, verticalUnitVector
+      real(real_kind), dimension(3,3) :: rotationMatrix
 
       call mpas_zonal_meridional_vectors(lon, lat, zonalUnitVector, meridionalUnitVector, verticalUnitVector)
 
@@ -621,7 +462,7 @@ contains
       rotationMatrix(:,2) = meridionalUnitVector
       rotationMatrix(:,3) = verticalUnitVector
 
-      vectorR3 = 0.0_RKIND
+      vectorR3 = 0.0d0
       do i=1,3
          do j=1,3
             vectorR3(i) = vectorR3(i) + rotationMatrix(i,j)*vectorLonLatR(j)
@@ -649,45 +490,13 @@ contains
 !>      localVerticalUnitVectors - the unit normal vector of the tangent plane at the center
 !>                         of each cell
 !-----------------------------------------------------------------------
-  subroutine mpas_initialize_vectors(meshPool)!{{{
+  subroutine mpas_initialize_vectors!{{{
 
     implicit none
 
-    type (mpas_pool_type), intent(in) :: meshPool  !< Input: Mesh information
-
     integer :: iEdge, iCell, cell1, cell2
-    integer, pointer :: nCells, nEdges
-    integer, dimension(:,:), pointer :: cellsOnEdge, verticesOnEdge, edgesOnCell
-    real(kind=RKIND), dimension(:), pointer :: xCell, yCell, zCell, xEdge, yEdge, zEdge
-    real(kind=RKIND), dimension(:,:), pointer :: localVerticalUnitVectors, edgeNormalVectors
-    real(kind=RKIND), dimension(:,:,:), pointer :: cellTangentPlane
-    real(kind=RKIND), dimension(3) :: xHatPlane, yHatPlane, rHat
-    real(kind=RKIND) :: normalDotRHat
-    logical, pointer :: on_a_sphere, is_periodic
-    real(kind=RKIND), pointer :: x_period, y_period
-
-    call mpas_pool_get_config(meshPool, 'is_periodic', is_periodic)
-    call mpas_pool_get_config(meshPool, 'x_period', x_period)
-    call mpas_pool_get_config(meshPool, 'y_period', y_period)
-
-    call mpas_pool_get_config(meshPool, 'on_a_sphere', on_a_sphere)
-
-    call mpas_pool_get_array(meshPool, 'xCell', xCell)
-    call mpas_pool_get_array(meshPool, 'yCell', yCell)
-    call mpas_pool_get_array(meshPool, 'zCell', zCell)
-    call mpas_pool_get_array(meshPool, 'xEdge', xEdge)
-    call mpas_pool_get_array(meshPool, 'yEdge', yEdge)
-    call mpas_pool_get_array(meshPool, 'zEdge', zEdge)
-    call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
-    call mpas_pool_get_array(meshPool, 'verticesOnEdge', verticesOnEdge)
-    call mpas_pool_get_array(meshPool, 'edgesOnCell', edgesOnCell)
-
-    call mpas_pool_get_dimension(meshPool, 'nCells', nCells)
-    call mpas_pool_get_dimension(meshPool, 'nEdges', nEdges)
-
-    call mpas_pool_get_array(meshPool, 'localVerticalUnitVectors', localVerticalUnitVectors)
-    call mpas_pool_get_array(meshPool, 'edgeNormalVectors', edgeNormalVectors)
-    call mpas_pool_get_array(meshPool, 'cellTangentPlane', cellTangentPlane)
+    real(real_kind), dimension(3) :: xHatPlane, yHatPlane, rHat
+    real(real_kind)               :: normalDotRHat
 
     ! init arrays
     edgeNormalVectors = 0
@@ -695,14 +504,11 @@ contains
 
     ! loop over all cells to be solved on this block
     do iCell = 1, nCells
-      if (on_a_sphere) then
-        localVerticalUnitVectors(1,iCell) = xCell(iCell)
-        localVerticalUnitVectors(2,iCell) = yCell(iCell)
-        localVerticalUnitVectors(3,iCell) = zCell(iCell)
-        call mpas_unit_vec_in_r3(localVerticalUnitVectors(:,iCell))
-      else ! on a plane
-        localVerticalUnitVectors(:,iCell) = (/ 0., 0., 1. /)
-      end if
+      localVerticalUnitVectors(1,iCell) = xCell(iCell)
+      localVerticalUnitVectors(2,iCell) = yCell(iCell)
+      localVerticalUnitVectors(3,iCell) = zCell(iCell)
+      
+      call mpas_unit_vec_in_r3(localVerticalUnitVectors(:,iCell))
     end do
 
     ! Initialize normal unit vectors at each edge
@@ -714,42 +520,22 @@ contains
 
       if (cell1 == nCells+1) then ! this is a boundary edge
         ! the normal points from the edge location to the cell location
-        if (is_periodic) then
-          edgeNormalVectors(1,iEdge) = xCell(cell2) - mpas_fix_periodicity(xEdge(iEdge), xCell(cell2), x_period)
-          edgeNormalVectors(2,iEdge) = yCell(cell2) - mpas_fix_periodicity(yEdge(iEdge), yCell(cell2), y_period)
-          edgeNormalVectors(3,iEdge) = zCell(cell2) - zEdge(iEdge)
-        else
-          edgeNormalVectors(1,iEdge) = xCell(cell2) - xEdge(iEdge)
-          edgeNormalVectors(2,iEdge) = yCell(cell2) - yEdge(iEdge)
-          edgeNormalVectors(3,iEdge) = zCell(cell2) - zEdge(iEdge)
-        end if
-
+        edgeNormalVectors(1,iEdge) = xCell(cell2) - xEdge(iEdge)
+        edgeNormalVectors(2,iEdge) = yCell(cell2) - yEdge(iEdge)
+        edgeNormalVectors(3,iEdge) = zCell(cell2) - zEdge(iEdge)
       else if (cell2 == nCells+1) then ! this is a boundary edge
         ! the normal points from the cell location to the edge location
-        if (is_periodic) then
-          edgeNormalVectors(1,iEdge) = mpas_fix_periodicity(xEdge(iEdge), xCell(cell1), x_period) - xCell(cell1)
-          edgeNormalVectors(2,iEdge) = mpas_fix_periodicity(yEdge(iEdge), yCell(cell1), y_period) - yCell(cell1)
-          edgeNormalVectors(3,iEdge) = zEdge(iEdge) - zCell(cell1)
-        else
-          edgeNormalVectors(1,iEdge) = xEdge(iEdge) - xCell(cell1)
-          edgeNormalVectors(2,iEdge) = yEdge(iEdge) - yCell(cell1)
-          edgeNormalVectors(3,iEdge) = zEdge(iEdge) - zCell(cell1)
-        end if
-
+        edgeNormalVectors(1,iEdge) = xEdge(iEdge) - xCell(cell1)
+        edgeNormalVectors(2,iEdge) = yEdge(iEdge) - yCell(cell1)
+        edgeNormalVectors(3,iEdge) = zEdge(iEdge) - zCell(cell1)
       else ! this is not a boundary cell
         ! the normal points from the cell 1 to cell2
         ! mrp problem: on periodic domains, vectors on edges of domain point the wrong way.
-        if (is_periodic) then
-          edgeNormalVectors(1,iEdge) = mpas_fix_periodicity(xCell(cell2), xCell(cell1), x_period) - xCell(cell1)
-          edgeNormalVectors(2,iEdge) = mpas_fix_periodicity(yCell(cell2), yCell(cell1), y_period) - yCell(cell1)
-          edgeNormalVectors(3,iEdge) = zCell(cell2) - zCell(cell1)
-        else
-          edgeNormalVectors(1,iEdge) = xCell(cell2) - xCell(cell1)
-          edgeNormalVectors(2,iEdge) = yCell(cell2) - yCell(cell1)
-          edgeNormalVectors(3,iEdge) = zCell(cell2) - zCell(cell1)
-        end if
-
-      end if
+        edgeNormalVectors(1,iEdge) = xCell(cell2) - xCell(cell1)
+        edgeNormalVectors(2,iEdge) = yCell(cell2) - yCell(cell1)
+        edgeNormalVectors(3,iEdge) = zCell(cell2) - zCell(cell1)
+      endif
+      
       call mpas_unit_vec_in_r3(edgeNormalVectors(:,iEdge))
     end do
 
@@ -757,9 +543,9 @@ contains
       iEdge = edgesOnCell(1,iCell)
       ! xHat and yHat are a local basis in the plane of the horizontal cell
       ! we arbitrarily choose xHat to point toward the first edge
-      rHat = localVerticalUnitVectors(:,iCell)
-      normalDotRHat = sum(edgeNormalVectors(:,iEdge)*rHat)
-      xHatPlane = edgeNormalVectors(:,iEdge) - normalDotRHat*rHat
+      rHat          = localVerticalUnitVectors(:,iCell)
+      normalDotRHat = sum(edgeNormalVectors(:,iEdge) * rHat)
+      xHatPlane     = edgeNormalVectors(:,iEdge) - normalDotRHat * rHat
       call mpas_unit_vec_in_r3(xHatPlane)
 
       call mpas_cross_product_in_r3(rHat, xHatPlane, yHatPlane)
@@ -785,7 +571,7 @@ contains
 !> Output:
 !>      edgeTangentVectors - the unit vector tangent to the edge and tangent to the sphere
 !-----------------------------------------------------------------------
-   subroutine mpas_initialize_tangent_vectors(meshPool, edgeTangentVectors)!{{{
+   subroutine mpas_initialize_tangent_vectors(edgeTangentVectors)!{{{
 
       !-----------------------------------------------------------------
       !
@@ -793,49 +579,24 @@ contains
       !
       !-----------------------------------------------------------------
 
-      type (mpas_pool_type), intent(in) :: &
-         meshPool          !< Input: Mesh information
-
       !-----------------------------------------------------------------
       !
       ! output variables
       !
       !-----------------------------------------------------------------
 
-      real (kind=RKIND), dimension(:,:), intent(out) :: &
-         edgeTangentVectors   !< Output: unit vector tangent to an edge
+      real(real_kind), dimension(:,:), intent(out) :: edgeTangentVectors   !< Output: unit vector tangent to an edge
 
       integer :: iEdge, vertex1, vertex2
-      integer, pointer :: nEdges
-      integer, dimension(:,:), pointer :: verticesOnEdge
-      real(kind=RKIND), dimension(:), pointer :: xVertex, yVertex, zVertex
-
-      logical, pointer :: is_periodic
-      real(kind=RKIND), pointer :: x_period, y_period
-
-      call mpas_pool_get_config(meshPool, 'is_periodic', is_periodic)
-      call mpas_pool_get_config(meshPool, 'x_period', x_period)
-      call mpas_pool_get_config(meshPool, 'y_period', y_period)
-
-      call mpas_pool_get_dimension(meshPool, 'nEdges', nEdges)
-      call mpas_pool_get_array(meshPool, 'verticesOnEdge', verticesOnEdge)
-      call mpas_pool_get_array(meshPool, 'xVertex', xVertex)
-      call mpas_pool_get_array(meshPool, 'yVertex', yVertex)
-      call mpas_pool_get_array(meshPool, 'zVertex', zVertex)
 
       do iEdge = 1,nEdges
          vertex1 = verticesOnEdge(1,iEdge)
          vertex2 = verticesOnEdge(2,iEdge)
-         ! the tangent vector points from the vertex 1 to vertex 2
-         if (is_periodic) then
-           edgeTangentVectors(1,iEdge) = mpas_fix_periodicity(xVertex(vertex2), xVertex(vertex1), x_period) - xVertex(vertex1)
-           edgeTangentVectors(2,iEdge) = mpas_fix_periodicity(yVertex(vertex2), yVertex(vertex1), y_period) - yVertex(vertex1)
-           edgeTangentVectors(3,iEdge) = zVertex(vertex2) - zVertex(vertex1)
-         else
-           edgeTangentVectors(1,iEdge) = xVertex(vertex2) - xVertex(vertex1)
-           edgeTangentVectors(2,iEdge) = yVertex(vertex2) - yVertex(vertex1)
-           edgeTangentVectors(3,iEdge) = zVertex(vertex2) - zVertex(vertex1)
-         end if
+         
+         edgeTangentVectors(1,iEdge) = xVertex(vertex2) - xVertex(vertex1)
+         edgeTangentVectors(2,iEdge) = yVertex(vertex2) - yVertex(vertex1)
+         edgeTangentVectors(3,iEdge) = zVertex(vertex2) - zVertex(vertex1)
+           
          call mpas_unit_vec_in_r3(edgeTangentVectors(:,iEdge))
       end do
 
@@ -858,12 +619,12 @@ contains
 !>  a single period, e.g., pxi = 260 + 360 = 620, xci = 0, and xiRef = 360
 !>  returns 260, not -100.
 !-----------------------------------------------------------------------
-    real(KIND=RKIND) function mpas_fix_periodicity(pxi, xci, xiRef) !{{{
+    real(real_kind) function mpas_fix_periodicity(pxi, xci, xiRef) !{{{
 
       !-----------------------------------------------------------------
       ! input variables
       !-----------------------------------------------------------------
-      real (kind=RKIND), intent(in) :: pxi, xci, xiRef
+      real(real_kind), intent(in) :: pxi, xci, xiRef
       !-----------------------------------------------------------------
       ! input/output variables
       !-----------------------------------------------------------------
@@ -871,16 +632,16 @@ contains
       !-----------------------------------------------------------------
       ! output variables
       !-----------------------------------------------------------------
-      ! real (kind=RKIND), intent(out) :: mpas_fix_periodicity
+      ! real(real_kind), intent(out) :: mpas_fix_periodicity
 
       !-----------------------------------------------------------------
       ! local variables
       !-----------------------------------------------------------------
-      real (kind=RKIND) :: dist
+      real(real_kind) :: dist
 
       dist = pxi - xci
 
-      if (abs(dist) > xiRef * 0.5_RKIND) then
+      if (abs(dist) > xiRef * 0.5d0) then
         mpas_fix_periodicity = pxi - (dist/abs(dist)) * xiRef
       else
         mpas_fix_periodicity = pxi
@@ -914,32 +675,30 @@ contains
       !-----------------------------------------------------------------
       ! local variables
       !-----------------------------------------------------------------
-      real (kind=RKIND) :: x1, x2, xc, xLen, xnew
-      real (kind=RKIND) :: eps = 1.0e-12_RKIND
+      real(real_kind) :: x1, x2, xc, xLen, xnew
+      real(real_kind) :: eps = 1.0e-12
 
       ierr = 0
 
-      xLen = 2_RKIND*pii
-      x1 = pii
-      x2 = 3_RKIND*pii
-      xc = pii
+      xLen = 2d0*pi
+      x1 = pi
+      x2 = 3.d0*pi
+      xc = pi
 
       xnew = mpas_fix_periodicity(x1, xc, xLen)
-      if (abs(xnew - pii ) > eps) then
-         call mpas_log_write("Error in mpas_unit_test_fix_periodicity: " // &
-           "x1's periodicity fix has error greater than tolerance -- FAILED.", MPAS_LOG_ERR)
+      if (abs(xnew - pi ) > eps) then
+         call log_error("Error in mpas_unit_test_fix_periodicity: " // "x1's periodicity fix has error greater than tolerance -- FAILED.", __FILE__, __LINE__)
          ierr = 1
       else
-         call mpas_log_write('mpas_unit_test_fix_periodicity: x1 test - SUCCESS')
+         call log_notice('mpas_unit_test_fix_periodicity: x1 test - SUCCESS')
       endif
 
       xnew = mpas_fix_periodicity(x2, xc, xLen)
-      if (abs(xnew - pii ) > eps) then
-         call mpas_log_write("Error in mpas_unit_test_fix_periodicity: " // &
-           "x2's periodicity fix has error greater than tolerance -- FAILED.", MPAS_LOG_ERR)
+      if (abs(xnew - pi ) > eps) then
+         call log_error("Error in mpas_unit_test_fix_periodicity: " // "x2's periodicity fix has error greater than tolerance -- FAILED.", __FILE__, __LINE__)
          ierr = 1
       else
-         call mpas_log_write('mpas_unit_test_fix_periodicity: x2 test - SUCCESS')
+         call log_notice('mpas_unit_test_fix_periodicity: x2 test - SUCCESS')
       endif
 
    end subroutine mpas_unit_test_fix_periodicity!}}}

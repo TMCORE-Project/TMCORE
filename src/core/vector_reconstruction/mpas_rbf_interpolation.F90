@@ -20,6 +20,7 @@
 !
 !-----------------------------------------------------------------------
 module mpas_rbf_interpolation
+   use const_mod
    use mpas_vector_operations
 
    implicit none
@@ -128,13 +129,11 @@ module mpas_rbf_interpolation
 !>      localVerticalUnitVectors - the unit normal vector of the tangent plane at the center 
 !>                         of each cell
 !-----------------------------------------------------------------------
-  subroutine mpas_rbf_interp_initialize(meshPool)!{{{
+  subroutine mpas_rbf_interp_initialize!{{{
 
     implicit none
 
-    type (mpas_pool_type), intent(inout) :: meshPool  !< Input/Output: Grid information
-
-    call mpas_initialize_vectors(meshPool)
+    call mpas_initialize_vectors
 
   end subroutine mpas_rbf_interp_initialize!}}}
 
@@ -166,16 +165,16 @@ module mpas_rbf_interpolation
  
     integer, intent(in) :: pointCount !< Input: Number of points
     integer, intent(in) :: coeffCount !< Input: Number of coefficients
-    real(kind=RKIND), dimension(pointCount,2), intent(in) :: points !< Input: List of points
-    real(kind=RKIND), dimension(pointCount), intent(in) :: fieldValues !< Input: Value at points
-    real(kind=RKIND), intent(in) :: alpha !< Input: Charachteristic length scale of RBFs
-    real(kind=RKIND), dimension(coeffCount), intent(out) :: coefficients !< Output: List of coefficients
+    real(real_kind), dimension(pointCount,2), intent(in) :: points !< Input: List of points
+    real(real_kind), dimension(pointCount), intent(in) :: fieldValues !< Input: Value at points
+    real(real_kind), intent(in) :: alpha !< Input: Charachteristic length scale of RBFs
+    real(real_kind), dimension(coeffCount), intent(out) :: coefficients !< Output: List of coefficients
 
     integer :: i, j, matrixSize
-    real(kind=RKIND), dimension(pointCount+1,pointCount+1) :: matrix
-    real(kind=RKIND), dimension(pointCount+1) :: rhs
+    real(real_kind), dimension(pointCount+1,pointCount+1) :: matrix
+    real(real_kind), dimension(pointCount+1) :: rhs
     integer, dimension(pointCount+1) :: pivotIndices
-    real(kind=RKIND) :: rSquared
+    real(real_kind) :: rSquared
 
     matrixSize = pointCount+1
     coefficients = 0.0
@@ -231,16 +230,16 @@ module mpas_rbf_interpolation
  
     integer, intent(in) :: pointCount !< Input: Number of points
     integer, intent(in) :: coeffCount !< Input: Number of coefficients
-    real(kind=RKIND), dimension(pointCount,2), intent(in) :: points !< Input: List of points
-    real(kind=RKIND), dimension(pointCount), intent(in) :: fieldValues !< Input: List of values at points
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale for RBFs 
-    real(kind=RKIND), dimension(coeffCount), intent(out) :: coefficients !< Output: List of coefficients
+    real(real_kind), dimension(pointCount,2), intent(in) :: points !< Input: List of points
+    real(real_kind), dimension(pointCount), intent(in) :: fieldValues !< Input: List of values at points
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale for RBFs 
+    real(real_kind), dimension(coeffCount), intent(out) :: coefficients !< Output: List of coefficients
 
     integer :: i, j, matrixSize
-    real(kind=RKIND), dimension(pointCount+3,pointCount+3) :: matrix
-    real(kind=RKIND), dimension(pointCount+3) :: rhs
+    real(real_kind), dimension(pointCount+3,pointCount+3) :: matrix
+    real(real_kind), dimension(pointCount+3) :: rhs
     integer, dimension(pointCount+3) :: pivotIndices
-    real(kind=RKIND) :: rSquared
+    real(real_kind) :: rSquared
 
     coefficients = 0.0
     matrix = 0.0
@@ -304,15 +303,15 @@ module mpas_rbf_interpolation
     integer, intent(in) :: fieldCount !< Input: Number of fields
     integer, intent(in) :: coeffCount !< Input: Number of coefficients
     integer, intent(in) :: pointCount !< Input: Number of points
-    real(kind=RKIND), dimension(coeffCount, fieldCount), intent(in) :: coefficients !< Input: List of coefficients
-    real(kind=RKIND), dimension(2), intent(in) :: evaluationPoint !< Input: Location for evaluation
-    real(kind=RKIND), dimension(pointCount,2), intent(in) :: points !< Input: List of points
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale for RBFs
+    real(real_kind), dimension(coeffCount, fieldCount), intent(in) :: coefficients !< Input: List of coefficients
+    real(real_kind), dimension(2), intent(in) :: evaluationPoint !< Input: Location for evaluation
+    real(real_kind), dimension(pointCount,2), intent(in) :: points !< Input: List of points
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale for RBFs
 
-    real(kind=RKIND), dimension(6,fieldCount), intent(out) :: derivs !< Output: List of derivatives
+    real(real_kind), dimension(6,fieldCount), intent(out) :: derivs !< Output: List of derivatives
 
     integer :: pointIndex
-    real(kind=RKIND) :: x, y, rSquared, rbfValue, rbfDerivOverR, rbfSecondDeriv
+    real(real_kind) :: x, y, rSquared, rbfValue, rbfDerivOverR, rbfSecondDeriv
 
     derivs = 0.0
     do pointIndex = 1, pointCount
@@ -381,15 +380,15 @@ module mpas_rbf_interpolation
     integer, intent(in) :: fieldCount !< Input: Number of fields
     integer, intent(in) :: coeffCount !< Input: Number of coefficients
     integer, intent(in) :: pointCount !< Input: Number of points
-    real(kind=RKIND), dimension(coeffCount, fieldCount), intent(in) :: coefficients !< Input: List of coefficients
-    real(kind=RKIND), dimension(2), intent(in) :: evaluationPoint !< Input: Point for evaluation
-    real(kind=RKIND), dimension(pointCount,2), intent(in) :: points !< Input: List of points
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
+    real(real_kind), dimension(coeffCount, fieldCount), intent(in) :: coefficients !< Input: List of coefficients
+    real(real_kind), dimension(2), intent(in) :: evaluationPoint !< Input: Point for evaluation
+    real(real_kind), dimension(pointCount,2), intent(in) :: points !< Input: List of points
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
 
-    real(kind=RKIND), dimension(6,fieldCount), intent(out) :: derivs !< Output: Derivatives
+    real(real_kind), dimension(6,fieldCount), intent(out) :: derivs !< Output: Derivatives
 
     integer :: pointIndex
-    real(kind=RKIND) :: x, y, rSquared, rbfValue, rbfDerivOverR, rbfSecondDeriv
+    real(real_kind) :: x, y, rSquared, rbfValue, rbfDerivOverR, rbfSecondDeriv
 
     derivs = 0.0
     do pointIndex = 1, pointCount
@@ -459,16 +458,16 @@ module mpas_rbf_interpolation
     pointCount, sourcePoints, destinationPoint, alpha, coefficients)
 
     integer, intent(in) :: pointCount !< Input: Number of points
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of source points
-    real(kind=RKIND), dimension(3), intent(in) :: destinationPoint !< Input: List of destination points
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
-    real(kind=RKIND), dimension(pointCount), intent(out) :: coefficients !< Output: List of coefficients
+    real(real_kind), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of source points
+    real(real_kind), dimension(3), intent(in) :: destinationPoint !< Input: List of destination points
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
+    real(real_kind), dimension(pointCount), intent(out) :: coefficients !< Output: List of coefficients
 
     integer :: i
     integer :: matrixSize
 
-    real(kind=RKIND), dimension(pointCount+1, pointCount+1) :: dirichletMatrix
-    real(kind=RKIND), dimension(pointCount+1) :: rhs, coeffs
+    real(real_kind), dimension(pointCount+1, pointCount+1) :: dirichletMatrix
+    real(real_kind), dimension(pointCount+1) :: rhs, coeffs
     integer, dimension(pointCount+1) :: pivotIndices
 
     matrixSize = pointCount+1 !! 1 extra space for constant 
@@ -533,17 +532,17 @@ module mpas_rbf_interpolation
     alpha, planeBasisVectors, coefficients)
 
     integer, intent(in) :: pointCount !< Input: Number of points
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of source points
-    real(kind=RKIND), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
-    real(kind=RKIND), dimension(2,3) :: planeBasisVectors !< Input: Basis vectors for the interpolation plane
-    real(kind=RKIND), dimension(pointCount), intent(out) :: coefficients !< Output: List of coefficients
+    real(real_kind), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of source points
+    real(real_kind), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
+    real(real_kind), dimension(2,3) :: planeBasisVectors !< Input: Basis vectors for the interpolation plane
+    real(real_kind), dimension(pointCount), intent(out) :: coefficients !< Output: List of coefficients
 
     integer :: i
     integer :: matrixSize
 
-    real(kind=RKIND), dimension(pointCount+3, pointCount+3) :: dirichletMatrix
-    real(kind=RKIND), dimension(pointCount+3) :: rhs, coeffs
+    real(real_kind), dimension(pointCount+3, pointCount+3) :: dirichletMatrix
+    real(real_kind), dimension(pointCount+3) :: rhs, coeffs
     integer, dimension(pointCount+3) :: pivotIndices
 
     matrixSize = pointCount+3 !! 3 extra space for constant and 2 planar dimensions
@@ -607,16 +606,16 @@ module mpas_rbf_interpolation
     sourcePoints, destinationPoint, alpha, coefficients)
 
     integer, intent(in) :: pointCount !< Input: Number of points
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of source points
-    real(kind=RKIND), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale for RBFs
-    real(kind=RKIND), dimension(pointCount), intent(out) :: coefficients !< Output: List of coefficients
+    real(real_kind), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of source points
+    real(real_kind), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale for RBFs
+    real(real_kind), dimension(pointCount), intent(out) :: coefficients !< Output: List of coefficients
 
     integer :: i
     integer :: matrixSize
 
-    real(kind=RKIND), dimension(pointCount+4, pointCount+4) :: dirichletMatrix
-    real(kind=RKIND), dimension(pointCount+4) :: rhs, coeffs
+    real(real_kind), dimension(pointCount+4, pointCount+4) :: dirichletMatrix
+    real(real_kind), dimension(pointCount+4) :: rhs, coeffs
     integer, dimension(pointCount+4) :: pivotIndices
 
     matrixSize = pointCount+4 !! 4 extra space for constant and linear in 3D
@@ -688,19 +687,19 @@ module mpas_rbf_interpolation
     alpha, dirichletCoefficients, neumannCoefficients)
 
     integer, intent(in) :: pointCount !< Input: Number of points
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of source points
+    real(real_kind), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of source points
     logical, dimension(pointCount), intent(in) :: isInterface !< Input: Logicals determining if a source point is at an interface
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: interfaceNormals !< Input: Normal vector at interface for each source point
-    real(kind=RKIND), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
-    real(kind=RKIND), dimension(pointCount), intent(out) :: dirichletCoefficients !< Output: Coefficients with Dirichlet BCs
-    real(kind=RKIND), dimension(pointCount), intent(out) :: neumannCoefficients !< Output: Coefficients with Neumann BCs
+    real(real_kind), dimension(pointCount,3), intent(in) :: interfaceNormals !< Input: Normal vector at interface for each source point
+    real(real_kind), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
+    real(real_kind), dimension(pointCount), intent(out) :: dirichletCoefficients !< Output: Coefficients with Dirichlet BCs
+    real(real_kind), dimension(pointCount), intent(out) :: neumannCoefficients !< Output: Coefficients with Neumann BCs
 
     integer :: i
     integer :: matrixSize
 
-    real(kind=RKIND), dimension(pointCount+1, pointCount+1) :: dirichletMatrix, neumannMatrix
-    real(kind=RKIND), dimension(pointcount+1) :: rhs, rhsCopy, coeffs
+    real(real_kind), dimension(pointCount+1, pointCount+1) :: dirichletMatrix, neumannMatrix
+    real(real_kind), dimension(pointcount+1) :: rhs, rhsCopy, coeffs
     integer, dimension(pointCount+1) :: pivotIndices
 
     matrixSize = pointCount+1 !! 1 extra space for constant 
@@ -788,20 +787,20 @@ module mpas_rbf_interpolation
     alpha, planeBasisVectors, dirichletCoefficients, neumannCoefficients)
 
     integer, intent(in) :: pointCount !< Input: Number of points
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of points
+    real(real_kind), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of points
     logical, dimension(pointCount), intent(in) :: isInterface !< Input: List of logicals determining if point is at an interface
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: interfaceNormals !< Input: List of interface normals
-    real(kind=RKIND), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
-    real(kind=RKIND), dimension(2,3) :: planeBasisVectors !< Input: Basis vectors for interpolation plane
-    real(kind=RKIND), dimension(pointCount), intent(out) :: dirichletCoefficients !< Output: List of Dirichlet coefficients
-    real(kind=RKIND), dimension(pointCount), intent(out) :: neumannCoefficients !< Output: List of Neumann coefficients
+    real(real_kind), dimension(pointCount,3), intent(in) :: interfaceNormals !< Input: List of interface normals
+    real(real_kind), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
+    real(real_kind), dimension(2,3) :: planeBasisVectors !< Input: Basis vectors for interpolation plane
+    real(real_kind), dimension(pointCount), intent(out) :: dirichletCoefficients !< Output: List of Dirichlet coefficients
+    real(real_kind), dimension(pointCount), intent(out) :: neumannCoefficients !< Output: List of Neumann coefficients
 
     integer :: i
     integer :: matrixSize
 
-    real(kind=RKIND), dimension(pointCount+3, pointCount+3) :: dirichletMatrix, neumannMatrix
-    real(kind=RKIND), dimension(pointCount+3) :: rhs, rhsCopy, coeffs
+    real(real_kind), dimension(pointCount+3, pointCount+3) :: dirichletMatrix, neumannMatrix
+    real(real_kind), dimension(pointCount+3) :: rhs, rhsCopy, coeffs
     integer, dimension(pointCount+3) :: pivotIndices
 
     matrixSize = pointCount+3 !! 3 extra space for constant and 2 planar dimensions
@@ -893,19 +892,19 @@ module mpas_rbf_interpolation
     alpha, dirichletCoefficients, neumannCoefficients)
 
     integer, intent(in) :: pointCount !< Input: Number of points
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of points
+    real(real_kind), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of points
     logical, dimension(pointCount), intent(in) :: isInterface !< Input: List of logicals determining if point as at an interface
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: interfaceNormals !< Input: List of interface normals
-    real(kind=RKIND), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
-    real(kind=RKIND), dimension(pointCount), intent(out) :: dirichletCoefficients !< Output: List of Dirichlet coefficients
-    real(kind=RKIND), dimension(pointCount), intent(out) :: neumannCoefficients !< Outut: List of Neumann coefficients
+    real(real_kind), dimension(pointCount,3), intent(in) :: interfaceNormals !< Input: List of interface normals
+    real(real_kind), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
+    real(real_kind), dimension(pointCount), intent(out) :: dirichletCoefficients !< Output: List of Dirichlet coefficients
+    real(real_kind), dimension(pointCount), intent(out) :: neumannCoefficients !< Outut: List of Neumann coefficients
 
     integer :: i
     integer :: matrixSize
 
-    real(kind=RKIND), dimension(pointCount+4, pointCount+4) :: dirichletMatrix, neumannMatrix
-    real(kind=RKIND), dimension(pointCount+4) :: rhs, rhsCopy, coeffs
+    real(real_kind), dimension(pointCount+4, pointCount+4) :: dirichletMatrix, neumannMatrix
+    real(real_kind), dimension(pointCount+4) :: rhs, rhsCopy, coeffs
     integer, dimension(pointCount+4) :: pivotIndices
 
     matrixSize = pointCount+4 !! 4 extra space for constant and linear in 3D
@@ -989,19 +988,19 @@ module mpas_rbf_interpolation
     alpha, coefficients)
 
     integer, intent(in) :: pointCount !< Input: Number of points
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of points
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: unitVectors !< Input: List of unit vectors
-    real(kind=RKIND), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
-    real(kind=RKIND), dimension(pointCount, 3), intent(out) :: coefficients !< Output: List of coefficients
+    real(real_kind), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of points
+    real(real_kind), dimension(pointCount,3), intent(in) :: unitVectors !< Input: List of unit vectors
+    real(real_kind), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
+    real(real_kind), dimension(pointCount, 3), intent(out) :: coefficients !< Output: List of coefficients
 
     integer :: i
     integer :: matrixSize
 
-    real(kind=RKIND), dimension(pointCount+3,pointCount+3) :: matrix, matrixCopy
-    real(kind=RKIND), dimension(pointCount,pointCount) :: matrixWork
-    real(kind=RKIND), dimension(pointCount+3, 3) :: rhs, coeffs
-    real(kind=RKIND), dimension(pointCount, 3) :: rhsWork
+    real(real_kind), dimension(pointCount+3,pointCount+3) :: matrix, matrixCopy
+    real(real_kind), dimension(pointCount,pointCount) :: matrixWork
+    real(real_kind), dimension(pointCount+3, 3) :: rhs, coeffs
+    real(real_kind), dimension(pointCount, 3) :: rhsWork
     integer, dimension(pointCount+3) :: pivotIndices
 
     matrixSize = pointCount+3 ! extra space for constant vector 
@@ -1079,30 +1078,30 @@ module mpas_rbf_interpolation
     alpha, planeBasisVectors, coefficients)
 
     integer, intent(in) :: pointCount !< Input: Number of points
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of points
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: unitVectors !< Input: List of unit vectors
-    real(kind=RKIND), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
-    real(kind=RKIND), dimension(2,3) :: planeBasisVectors !< Input: Basis vectors for interpolation plane
-    real(kind=RKIND), dimension(pointCount, 3), intent(out) :: coefficients !< Output: List of coefficients
+    real(real_kind), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of points
+    real(real_kind), dimension(pointCount,3), intent(in) :: unitVectors !< Input: List of unit vectors
+    real(real_kind), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
+    real(real_kind), dimension(2,3) :: planeBasisVectors !< Input: Basis vectors for interpolation plane
+    real(real_kind), dimension(pointCount, 3), intent(out) :: coefficients !< Output: List of coefficients
 
     integer :: i
     integer :: matrixSize
 
-    real(kind=RKIND), dimension(pointCount,2) :: planarSourcePoints
-    real(kind=RKIND), dimension(pointCount,2) :: planarUnitVectors
-    real(kind=RKIND), dimension(2) :: planarDestinationPoint
+    real(real_kind), dimension(pointCount,2) :: planarSourcePoints
+    real(real_kind), dimension(pointCount,2) :: planarUnitVectors
+    real(real_kind), dimension(2) :: planarDestinationPoint
 
-    real(kind=RKIND), dimension(pointCount+2, pointCount+2) :: matrix, matrixCopy
-    real(kind=RKIND), dimension(pointCount, pointCount) :: matrixWork
-    real(kind=RKIND), dimension(pointCount+2, 2) :: rhs, coeffs
-    real(kind=RKIND), dimension(pointCount,2) :: rhsWork
+    real(real_kind), dimension(pointCount+2, pointCount+2) :: matrix, matrixCopy
+    real(real_kind), dimension(pointCount, pointCount) :: matrixWork
+    real(real_kind), dimension(pointCount+2, 2) :: rhs, coeffs
+    real(real_kind), dimension(pointCount,2) :: rhsWork
     integer, dimension(pointCount+2) :: pivotIndices
 
     matrixSize = pointCount+2 ! space for constant vector in plane
 
     matrix = 0.0
-    rhs = 0.0
+    rhs    = 0.0
     coeffs = 0.0
 
     do i = 1, pointCount
@@ -1131,7 +1130,7 @@ module mpas_rbf_interpolation
 
     ! solve each linear system
     matrixCopy = matrix
-    call mpas_legs(matrix, matrixSize, rhs(:,1), coeffs(:,1), pivotIndices)
+    call mpas_legs(matrix    , matrixSize, rhs(:,1), coeffs(:,1), pivotIndices)
     call mpas_legs(matrixCopy, matrixSize, rhs(:,2), coeffs(:,2), pivotIndices)
 
 
@@ -1189,19 +1188,19 @@ module mpas_rbf_interpolation
     alpha, coefficients)
 
     integer, intent(in) :: pointCount !< Input: Number of points
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of points
+    real(real_kind), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of points
     logical, dimension(pointCount), intent(in) :: isTangentToInterface !< Input: List of logicals determining if point is tangent to interface
     integer, dimension(pointCount), intent(in) :: normalVectorIndex !< Input: Index of for normal vectors
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: unitVectors !< Input: List of unit vectors
-    real(kind=RKIND), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
-    real(kind=RKIND), dimension(pointCount, 3), intent(out) :: coefficients !< Output: List of coefficients
+    real(real_kind), dimension(pointCount,3), intent(in) :: unitVectors !< Input: List of unit vectors
+    real(real_kind), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
+    real(real_kind), dimension(pointCount, 3), intent(out) :: coefficients !< Output: List of coefficients
 
     integer :: i
     integer :: matrixSize
 
-    real(kind=RKIND), dimension(pointCount+3, pointCount+3) :: matrix, matrixCopy
-    real(kind=RKIND), dimension(pointCount+3, 3) :: rhs, coeffs
+    real(real_kind), dimension(pointCount+3, pointCount+3) :: matrix, matrixCopy
+    real(real_kind), dimension(pointCount+3, 3) :: rhs, coeffs
     integer, dimension(pointCount+3) :: pivotIndices
 
     matrixSize = pointCount+3 ! extra space for constant vector 
@@ -1286,24 +1285,24 @@ module mpas_rbf_interpolation
     destinationPoint, alpha, planeBasisVectors, coefficients)
 
     integer, intent(in) :: pointCount !< input: Number of points
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of points
+    real(real_kind), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of points
     logical, dimension(pointCount), intent(in) :: isTangentToInterface !< Input: List of logicals determining if point is tangent to interface
     integer, dimension(pointCount), intent(in) :: normalVectorIndex !< Input: Index for normal vectors
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: unitVectors !< Input: List of unit vectors
-    real(kind=RKIND), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
-    real(kind=RKIND), dimension(2,3), intent(in) :: planeBasisVectors !< Input: Basis vectors for interpolation plane
-    real(kind=RKIND), dimension(pointCount, 3), intent(out) :: coefficients !< Output: List of coefficients
+    real(real_kind), dimension(pointCount,3), intent(in) :: unitVectors !< Input: List of unit vectors
+    real(real_kind), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
+    real(real_kind), dimension(2,3), intent(in) :: planeBasisVectors !< Input: Basis vectors for interpolation plane
+    real(real_kind), dimension(pointCount, 3), intent(out) :: coefficients !< Output: List of coefficients
 
     integer :: i
     integer :: matrixSize
 
-    real(kind=RKIND), dimension(pointCount,2) :: planarSourcePoints
-    real(kind=RKIND), dimension(pointCount,2) :: planarUnitVectors
-    real(kind=RKIND), dimension(2) :: planarDestinationPoint
+    real(real_kind), dimension(pointCount,2) :: planarSourcePoints
+    real(real_kind), dimension(pointCount,2) :: planarUnitVectors
+    real(real_kind), dimension(2) :: planarDestinationPoint
 
-    real(kind=RKIND), dimension(pointCount+2, pointCount+2) :: matrix, matrixCopy
-    real(kind=RKIND), dimension(pointCount+2, 2) :: rhs, coeffs
+    real(real_kind), dimension(pointCount+2, pointCount+2) :: matrix, matrixCopy
+    real(real_kind), dimension(pointCount+2, 2) :: rhs, coeffs
     integer, dimension(pointCount+2) :: pivotIndices
 
     matrixSize = pointCount+2 ! space for constant vector in plane
@@ -1365,8 +1364,8 @@ module mpas_rbf_interpolation
 !> This function evaluates an RBF and returns the value.
 !-----------------------------------------------------------------------
   function evaluate_rbf(rSquared) result(rbfValue)!{{{
-    real(kind=RKIND), intent(in) :: rSquared !< Input: Squared value of r
-    real(kind=RKIND) :: rbfValue
+    real(real_kind), intent(in) :: rSquared !< Input: Squared value of r
+    real(real_kind) :: rbfValue
 
     ! inverse multiquadratic
     rbfValue = 1/sqrt(1 + rSquared)
@@ -1384,9 +1383,9 @@ module mpas_rbf_interpolation
 !> This routine computes the value and derivative of a RBF.
 !-----------------------------------------------------------------------
   subroutine mpas_evaluate_rbf_and_deriv(rSquared, rbfValue, rbfDerivOverR)!{{{
-    real(kind=RKIND), intent(in) :: rSquared !< Input: Squared value of R
-    real(kind=RKIND), intent(out) :: rbfValue !< Output: Value of RBF
-    real(kind=RKIND), intent(out) :: rbfDerivOverR  !< Outut: Derivative of RBF over R
+    real(real_kind), intent(in) :: rSquared !< Input: Squared value of R
+    real(real_kind), intent(out) :: rbfValue !< Output: Value of RBF
+    real(real_kind), intent(out) :: rbfDerivOverR  !< Outut: Derivative of RBF over R
 
     ! inverse multiquadratic
     rbfValue = 1/sqrt(1 + rSquared)
@@ -1405,10 +1404,10 @@ module mpas_rbf_interpolation
 !> This routine computes the value and the first two derivatives of a RBF.
 !-----------------------------------------------------------------------
   subroutine mpas_evaluate_rbf_and_derivs(rSquared, rbfValue, rbfDerivOverR, rbfSecondDeriv)!{{{
-    real(kind=RKIND), intent(in) :: rSquared !< Input: Squared value of R
-    real(kind=RKIND), intent(out) :: rbfValue !< Output: Value of RBF
-    real(kind=RKIND), intent(out) :: rbfDerivOverR !< Output: Value of first derivative of RBF
-    real(kind=RKIND), intent(out) :: rbfSecondDeriv !< Output: Value of second derivative of RBF
+    real(real_kind), intent(in) :: rSquared !< Input: Squared value of R
+    real(real_kind), intent(out) :: rbfValue !< Output: Value of RBF
+    real(real_kind), intent(out) :: rbfDerivOverR !< Output: Value of first derivative of RBF
+    real(real_kind), intent(out) :: rbfSecondDeriv !< Output: Value of second derivative of RBF
 
     ! inverse multiquadratic
     rbfValue = 1/sqrt(1 + rSquared)
@@ -1431,15 +1430,15 @@ module mpas_rbf_interpolation
     alpha, dirichletMatrix, rhs)
 
     integer, intent(in) :: pointCount !< Input: Number of points
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of points
-    real(kind=RKIND), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale of RBF
-    real(kind=RKIND), dimension(pointCount,pointCount), intent(out) :: dirichletMatrix !< Output: Matrix
-    real(kind=RKIND), dimension(pointCount), intent(out) :: rhs !< Output: Right hand side
+    real(real_kind), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of points
+    real(real_kind), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale of RBF
+    real(real_kind), dimension(pointCount,pointCount), intent(out) :: dirichletMatrix !< Output: Matrix
+    real(real_kind), dimension(pointCount), intent(out) :: rhs !< Output: Right hand side
 
     integer :: i, j
 
-    real(kind=RKIND) :: rSquared, rbfValue
+    real(real_kind) :: rSquared, rbfValue
 
     do j = 1, pointCount
       do i = 1, pointCount
@@ -1471,18 +1470,18 @@ module mpas_rbf_interpolation
     alpha, dirichletMatrix, neumannMatrix, rhs)
 
     integer, intent(in) :: pointCount !< Input: Number of points
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of points
+    real(real_kind), dimension(pointCount,3), intent(in) :: sourcePoints !< Input: List of points
     logical, dimension(pointCount), intent(in) :: isInterface !< Input: Logicals determining if point is an interface
-    real(kind=RKIND), dimension(pointCount,3), intent(in) :: interfaceNormals !< Input: Normals at interfaces
-    real(kind=RKIND), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale of RBF
-    real(kind=RKIND), dimension(pointCount,pointCount), intent(out) :: dirichletMatrix !< Output: Dirichlet Matrix
-    real(kind=RKIND), dimension(pointCount,pointCount), intent(out) :: neumannMatrix !< Output: Neumann Matrix
-    real(kind=RKIND), dimension(pointCount), intent(out) :: rhs !< Output: Right hand side
+    real(real_kind), dimension(pointCount,3), intent(in) :: interfaceNormals !< Input: Normals at interfaces
+    real(real_kind), dimension(3), intent(in) :: destinationPoint !< Input: Destination point
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale of RBF
+    real(real_kind), dimension(pointCount,pointCount), intent(out) :: dirichletMatrix !< Output: Dirichlet Matrix
+    real(real_kind), dimension(pointCount,pointCount), intent(out) :: neumannMatrix !< Output: Neumann Matrix
+    real(real_kind), dimension(pointCount), intent(out) :: rhs !< Output: Right hand side
 
     integer :: i, j
 
-    real(kind=RKIND) :: rSquared, rbfValue, rbfDerivOverR, normalDotX
+    real(real_kind) :: rSquared, rbfValue, rbfDerivOverR, normalDotX
 
     do j = 1, pointCount
       if(isInterface(j)) then
@@ -1528,16 +1527,16 @@ module mpas_rbf_interpolation
 
     integer, intent(in) :: pointCount !< Input: Number of points
     integer, intent(in) :: dimensions !< Input: Number of dimensions
-    real(kind=RKIND), dimension(pointCount,dimensions), intent(in) :: sourcePoints !< Input: List of points
-    real(kind=RKIND), dimension(pointCount,dimensions), intent(in) :: unitVectors !< Input: List of unit vectors
-    real(kind=RKIND), dimension(dimensions), intent(in) :: destinationPoint !< Input: Destination point
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
-    real(kind=RKIND), dimension(pointCount,pointCount), intent(out) :: matrix !< Output: Matrix
-    real(kind=RKIND), dimension(pointCount,dimensions), intent(out) :: rhs !< Output: Right hand side
+    real(real_kind), dimension(pointCount,dimensions), intent(in) :: sourcePoints !< Input: List of points
+    real(real_kind), dimension(pointCount,dimensions), intent(in) :: unitVectors !< Input: List of unit vectors
+    real(real_kind), dimension(dimensions), intent(in) :: destinationPoint !< Input: Destination point
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale of RBFs
+    real(real_kind), dimension(pointCount,pointCount), intent(out) :: matrix !< Output: Matrix
+    real(real_kind), dimension(pointCount,dimensions), intent(out) :: rhs !< Output: Right hand side
 
     integer :: i, j
 
-    real(kind=RKIND) :: rSquared, rbfValue, unitVectorDotProduct
+    real(real_kind) :: rSquared, rbfValue, unitVectorDotProduct
 
     do j = 1, pointCount
       do i = j, pointCount
@@ -1572,18 +1571,18 @@ module mpas_rbf_interpolation
 
     integer, intent(in) :: pointCount !< Input: Number of points
     integer, intent(in) :: dimensions !< Input: Number of dimensions
-    real(kind=RKIND), dimension(pointCount,dimensions), intent(in) :: sourcePoints !< Input: List of points
+    real(real_kind), dimension(pointCount,dimensions), intent(in) :: sourcePoints !< Input: List of points
     logical, dimension(pointCount), intent(in) :: isTangentToInterface !< Input: Logical to determine if point is tangent to interface
     integer, dimension(pointCount), intent(in) :: normalVectorIndex !< Input: Index to normal vector
-    real(kind=RKIND), dimension(pointCount,dimensions), intent(in) :: unitVectors !< Input: List of unit vectors
-    real(kind=RKIND), dimension(dimensions), intent(in) :: destinationPoint !< Input: Destination point
-    real(kind=RKIND), intent(in) :: alpha !< Input: Characteristic length scale of RBF
-    real(kind=RKIND), dimension(pointCount,pointCount), intent(out) :: matrix !< Output: Matrix
-    real(kind=RKIND), dimension(pointCount,dimensions), intent(out) :: rhs !< Output: Right hand side
+    real(real_kind), dimension(pointCount,dimensions), intent(in) :: unitVectors !< Input: List of unit vectors
+    real(real_kind), dimension(dimensions), intent(in) :: destinationPoint !< Input: Destination point
+    real(real_kind), intent(in) :: alpha !< Input: Characteristic length scale of RBF
+    real(real_kind), dimension(pointCount,pointCount), intent(out) :: matrix !< Output: Matrix
+    real(real_kind), dimension(pointCount,dimensions), intent(out) :: rhs !< Output: Right hand side
 
     integer :: i, j
 
-    real(kind=RKIND) :: rSquared, rbfValue, rbfDerivOverR, normalVector(dimensions), &
+    real(real_kind) :: rSquared, rbfValue, rbfDerivOverR, normalVector(dimensions), &
       normalDotX, unitVectorDotProduct
 
     do j = 1, pointCount
@@ -1670,9 +1669,9 @@ subroutine mpas_legs (A,N,B,X,INDX)!{{{
   IMPLICIT NONE
   integer, INTENT (IN) :: N !< Input: Size of matrix and vectors
   integer, INTENT (OUT), DIMENSION (N) :: INDX !< Output: Pivot vector
-  real(kind=RKIND), INTENT (INOUT), DIMENSION (N,N) :: A !< Input/Output: Matrix
-  real(kind=RKIND), INTENT (INOUT), DIMENSION (N) :: B !< Input/Output: Right hand side vector
-  real(kind=RKIND), INTENT (OUT), DIMENSION (N) :: X !< Output: Solution
+  real(real_kind), INTENT (INOUT), DIMENSION (N,N) :: A !< Input/Output: Matrix
+  real(real_kind), INTENT (INOUT), DIMENSION (N) :: B !< Input/Output: Right hand side vector
+  real(real_kind), INTENT (OUT), DIMENSION (N) :: X !< Output: Solution
 
   integer :: I,J 
 !
@@ -1729,9 +1728,9 @@ subroutine migs (A,N,X,INDX)!{{{
   IMPLICIT NONE
   integer, INTENT (IN) :: N !< Input: Size of matrix and inverse
   integer, INTENT (OUT), DIMENSION (N) :: INDX !< Output: Pivot vector
-  real(kind=RKIND), INTENT (INOUT), DIMENSION (N,N):: A !< Input/Output: Matrix to invert
-  real(kind=RKIND), INTENT (OUT), DIMENSION (N,N):: X !< Output: Inverse of Matrix
-  real(kind=RKIND), DIMENSION (N,N) :: B
+  real(real_kind), INTENT (INOUT), DIMENSION (N,N):: A !< Input/Output: Matrix to invert
+  real(real_kind), INTENT (OUT), DIMENSION (N,N):: X !< Output: Inverse of Matrix
+  real(real_kind), DIMENSION (N,N) :: B
   integer :: I,J,K
 !
   DO I = 1, N
@@ -1787,10 +1786,10 @@ subroutine elgs (A,N,INDX)!{{{
   IMPLICIT NONE
   integer, INTENT (IN) :: N !< Input: Size of matrix
   integer, INTENT (OUT), DIMENSION (N) :: INDX !< Output: Pivot vector
-  real(kind=RKIND), INTENT (INOUT), DIMENSION (N,N) :: A !< Input/Output: Matrix and solution
+  real(real_kind), INTENT (INOUT), DIMENSION (N,N) :: A !< Input/Output: Matrix and solution
   integer :: I,J,K,ITMP
-  real(kind=RKIND) :: C1,PI,PI1,PJ
-  real(kind=RKIND), DIMENSION (N) :: C
+  real(real_kind) :: C1,PI,PI1,PJ
+  real(real_kind), DIMENSION (N) :: C
 !
 ! Initialize the index
 !

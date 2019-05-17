@@ -14,8 +14,11 @@ module state_mod
 
   type state_on_cell_type
     real(real_kind), allocatable :: gd    (:)
-    real(real_kind), allocatable :: u     (:)
-    real(real_kind), allocatable :: v     (:)
+    real(real_kind), allocatable :: u     (:) ! zonal wind
+    real(real_kind), allocatable :: v     (:) ! merdional wind
+    real(real_kind), allocatable :: uX    (:) ! wind along X direction on cartisian coordinate
+    real(real_kind), allocatable :: uY    (:) ! wind along Y direction on cartisian coordinate
+    real(real_kind), allocatable :: uZ    (:) ! wind along Z direction on cartisian coordinate
     real(real_kind), allocatable :: div   (:)
     real(real_kind), allocatable :: ke    (:)
     real(real_kind), allocatable :: pv    (:)
@@ -86,6 +89,9 @@ contains
     if (.not. allocated(state%cell%gd    )) allocate(state%cell%gd    (nCells))
     if (.not. allocated(state%cell%u     )) allocate(state%cell%u     (nCells))
     if (.not. allocated(state%cell%v     )) allocate(state%cell%v     (nCells))
+    if (.not. allocated(state%cell%uX    )) allocate(state%cell%uX    (nCells))
+    if (.not. allocated(state%cell%uY    )) allocate(state%cell%uY    (nCells))
+    if (.not. allocated(state%cell%uZ    )) allocate(state%cell%uZ    (nCells))
     if (.not. allocated(state%cell%div   )) allocate(state%cell%div   (nCells))
     if (.not. allocated(state%cell%ke    )) allocate(state%cell%ke    (nCells))
     if (.not. allocated(state%cell%pv    )) allocate(state%cell%pv    (nCells))
@@ -110,6 +116,9 @@ contains
     if (allocated(state%cell%gd    )) deallocate(state%cell%gd    )
     if (allocated(state%cell%u     )) deallocate(state%cell%u     )
     if (allocated(state%cell%v     )) deallocate(state%cell%v     )
+    if (allocated(state%cell%uX    )) deallocate(state%cell%uX    )
+    if (allocated(state%cell%uY    )) deallocate(state%cell%uY    )
+    if (allocated(state%cell%uZ    )) deallocate(state%cell%uZ    )
     if (allocated(state%cell%div   )) deallocate(state%cell%div   )
     if (allocated(state%cell%ke    )) deallocate(state%cell%ke    )
     if (allocated(state%cell%pv    )) deallocate(state%cell%pv    )
