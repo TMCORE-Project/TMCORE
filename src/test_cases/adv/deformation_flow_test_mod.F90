@@ -59,9 +59,9 @@ contains
 
     case ('gaussian_hills')
       do iCell = lbound(state(1)%cell%gd, 1), ubound(state(1)%cell%gd, 1)
-        d1 = (x1 - xCell(iCell))**2 + (y1 - yCell(iCell))**2 + (z1 - zCell(iCell))**2
-        d2 = (x2 - xCell(iCell))**2 + (y2 - yCell(iCell))**2 + (z2 - zCell(iCell))**2
-        state(1)%cell%gd(iCell) = 0.95 * (exp(-5.0 * d1) + exp(-5 * d2))
+        d1 = ((x1 - xCell(iCell))**2 + (y1 - yCell(iCell))**2 + (z1 - zCell(iCell))**2) / radius**2
+        d2 = ((x2 - xCell(iCell))**2 + (y2 - yCell(iCell))**2 + (z2 - zCell(iCell))**2) / radius**2
+        state(1)%cell%gd(iCell) = 0.95 * (exp(-5.0 * d1) + exp(-5.0 * d2))
       end do
     case default
       call log_error('Unknown subcase_name ' // trim(subcase_name) // '!')

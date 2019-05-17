@@ -20,6 +20,6 @@ mesh_file_path  = './x1.40962.grid.nc'
 &test_case
 ! Choose from 'cosine_bell_rotation', 'deformation_flow'
 case_name = 'deformation_flow'
-! Choose from 'case4:slotted_cylinders'
+! Choose from 'case4:slotted_cylinders', 'case4:gaussian_hills'
 subcase_name = 'case4:slotted_cylinders'
 /
