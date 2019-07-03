@@ -1,11 +1,11 @@
 &time_control
-run_days = 33
+run_days = 20
 dt       = 240
 /
 
 &io_control
-history_periods    = '1 days'
-output_file_prefix = 'rh.40962'
+history_interval   = '6 hours'
+output_file_prefix = 'mz.40962'
 frames_per_file    = '2000 months'
 /
 
@@ -23,5 +23,5 @@ mesh_file_path         = './x1.40962.grid.nc'
 
 &test_case
 ! Choose from 'mountain_zonal_flow', 'steady_geostrophic_flow', 'rossby_haurwitz_wave', 'linearized_rossby_wave'
-case_name = 'rossby_haurwitz_wave'
+case_name = 'mountain_zonal_flow'
 /

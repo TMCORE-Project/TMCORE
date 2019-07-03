@@ -1,7 +1,7 @@
 module tmcore_swm_mod
 
   use params_mod
-  use log_mod
+  use flogger
   use mesh_mod
   use time_mod, old => old_time_idx, new => new_time_idx
   use static_mod
@@ -33,7 +33,7 @@ contains
     call params_parse_namelist(namelist_file_path)
     call log_init()
     call time_init()
-    call io_init(time_units, start_time_format, time_add_alert, time_is_alerted)
+    call io_init(time_units, start_time_format)
     call mesh_init()
     call adv_scheme_init()
     call static_init()
@@ -70,7 +70,7 @@ contains
     
     call diag_run(state(old), static)
     call history_write(state(old), static)
-    call log_step()
+    call log_print_diag(curr_time_format)
 
     do while (.not. time_is_finished())
       call time_integrate(spatial_operators, update_state)
@@ -83,8 +83,8 @@ contains
       call calc_pv_on_vertex            (state(old)%vertex%vor, state(old)%vertex%gd   , state(old)%vertex%pv)
       call mpas_reconstruct             (state(old)%edge  %u  , state(old)%cell  %uX   , state(old)%cell  %uY, state(old)%cell%uZ, state(old)%cell%u, state(old)%cell%v )
       call diag_run(state(old), static)
-      if (time_is_alerted('h0.output')) call history_write(state(old), static)
-      call log_step()
+      if (time_is_alerted('history_write')) call history_write(state(old), static)
+      call log_print_diag(curr_time_format)
     end do
 
   end subroutine tmcore_swm_run

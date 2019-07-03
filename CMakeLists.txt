@@ -53,6 +53,7 @@ endif ()
 
 add_subdirectory(lib/container)
 add_subdirectory(lib/datetime)
+add_subdirectory(lib/flogger)
 add_subdirectory(lib/fiona)
 
 set(source_files
@@ -60,7 +61,6 @@ set(source_files
   src/utils/string_mod.F90
   src/utils/time_mod.F90
   src/utils/timer_mod.F90
-  src/utils/log_mod.F90
   src/utils/history_mod.F90
   src/utils/sort_mod.F90
   src/utils/sphere_geometry_mod.F90
@@ -92,7 +92,7 @@ set(source_files
 )
 
 add_library(tmcore ${source_files})
-target_link_libraries(tmcore fortran_datetime fortran_container fiona netcdf netcdff ${LAPACK_LIBRARIES})
+target_link_libraries(tmcore fortran_datetime fortran_container flogger fiona netcdf netcdff ${LAPACK_LIBRARIES})
 
 add_executable(test_tmcore_swm.exe src/core/test_tmcore_swm.F90)
 target_link_libraries(test_tmcore_swm.exe tmcore)

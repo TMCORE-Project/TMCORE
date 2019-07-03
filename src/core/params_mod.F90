@@ -21,13 +21,13 @@ module params_mod
     end_time,             &
     dt
 
-  character(max_name_len) history_periods(1)
+  character(max_name_len) history_interval(1)
   character(max_name_len)      :: time_units         = 'days'
   character(max_file_path_len) :: output_file_prefix = 'N/A'
   character(max_name_len)      :: frames_per_file    = 'N/A'
 
   namelist /io_control/   &
-    history_periods     , &
+    history_interval    , &
     time_units          , &
     output_file_prefix  , &
     frames_per_file

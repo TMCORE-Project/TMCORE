@@ -144,17 +144,17 @@ contains
   subroutine time_add_alert(name, months, days, hours, minutes, seconds)
 
     character(*), intent(in) :: name
-    real, intent(in), optional :: months
-    real, intent(in), optional :: days
-    real, intent(in), optional :: hours
-    real, intent(in), optional :: minutes
-    real, intent(in), optional :: seconds
+    real(real_kind), intent(in), optional :: months
+    real(real_kind), intent(in), optional :: days
+    real(real_kind), intent(in), optional :: hours
+    real(real_kind), intent(in), optional :: minutes
+    real(real_kind), intent(in), optional :: seconds
 
-    real months_
-    real days_
-    real hours_
-    real minutes_
-    real seconds_
+    real(real_kind) months_
+    real(real_kind) days_
+    real(real_kind) hours_
+    real(real_kind) minutes_
+    real(real_kind) seconds_
     type(alert_type) alert
 
     if (present(months)) then

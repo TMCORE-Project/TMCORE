@@ -1,5 +1,6 @@
 module mountain_zonal_flow_test_mod
 
+  use flogger
   use params_mod
   use mesh_mod
   use static_mod
@@ -27,7 +28,7 @@ contains
     real(real_kind) psi_vertex(nVertices)
     integer iCell, iEdge, iVertex
 
-    write(6, *) '[Notice]: Use mountain zonal flow initial condition.'
+    call log_notice('Use mountain zonal flow initial condition.')
 
     cos_alpha = cos(alpha)
     sin_alpha = sin(alpha)

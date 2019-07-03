@@ -26,10 +26,29 @@ contains
 
   subroutine history_init()
 
+    character(10) time_value, time_units
+    real(real_kind) seconds
+
+    time_value = string_split(history_interval(1), 1)
+    time_units = string_split(history_interval(1), 2)
+    read(time_value, *) seconds
+    select case (time_units)
+    case ('days')
+      seconds = seconds * 86400
+    case ('hours')
+      seconds = seconds * 3600
+    case ('minutes')
+      seconds = seconds * 60
+    case ('seconds')
+      seconds = seconds
+    case default
+      call log_error('Invalid history interval ' // trim(history_interval(1)) // '!')
+    end select
+
     if (output_file_prefix /= 'N/A') then
-      call io_create_dataset('h0', desc=case_name, file_prefix=output_file_prefix, frames_per_file=frames_per_file, period=history_periods(1))
+      call io_create_dataset('h0', desc=case_name, file_prefix=output_file_prefix)
     else
-      call io_create_dataset('h0', desc=case_name, file_prefix=case_name, frames_per_file=frames_per_file, period=history_periods(1))
+      call io_create_dataset('h0', desc=case_name, file_prefix=case_name)
     end if
 
     call io_add_att('h0', 'source',         'TMCORE')
@@ -89,6 +108,8 @@ contains
     call io_add_var('h0', 'tm',             long_name='total mass',                                  units='m2 s-2', dim_names=['Time     '],                    data_type='real(8)')
     call io_add_var('h0', 'te',             long_name='total energy',                                units='m4 s-4', dim_names=['Time     '],                    data_type='real(8)')
 
+    call time_add_alert('history_write', seconds=seconds)
+
     call log_notice('History module is initialized.')
 
   end subroutine history_init
@@ -106,7 +127,7 @@ contains
 
     call div_operator(state%edge%u, state%cell%div)
 
-    call io_start_output('h0', time_elapsed_seconds())
+    call io_start_output('h0', time_elapsed_seconds(), new_file=.false.)
     call io_output('h0', 'lonCell',         lonCell)
     call io_output('h0', 'latCell',         latCell)
     call io_output('h0', 'xCell',           xCell)
