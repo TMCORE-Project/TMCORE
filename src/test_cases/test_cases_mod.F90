@@ -7,6 +7,7 @@ module test_cases_mod
   use steady_geostrophic_flow_test_mod
   use rossby_haurwitz_wave_test_mod
   use linearized_rossby_wave_test_mod
+  use jet_zonal_flow_test_mod
   use cosine_bell_rotation_test_mod
   use deformation_flow_test_mod
   
@@ -25,6 +26,8 @@ contains
       call rossby_haurwitz_wave_test_set_initial_condition()
     case ('linearized_rossby_wave')
       call linearized_rossby_wave_test_set_initial_condition()
+    case ('jet_zonal_flow')
+      call jet_zonal_flow_test_set_initial_condition()
     case ('cosine_bell_rotation')
       call cosine_bell_rotation_test_set_initial_condition()
     case ('deformation_flow')

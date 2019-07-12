@@ -87,8 +87,10 @@ set(source_files
   src/test_cases/swm/steady_geostrophic_flow_test_mod.F90
   src/test_cases/swm/rossby_haurwitz_wave_test_mod.F90
   src/test_cases/swm/linearized_rossby_wave_test_mod.F90
+  src/test_cases/swm/jet_zonal_flow_test_mod.F90
   src/test_cases/adv/cosine_bell_rotation_test_mod.F90
   src/test_cases/adv/deformation_flow_test_mod.F90
+  lib/quadpack.f90
 )
 
 add_library(tmcore ${source_files})
