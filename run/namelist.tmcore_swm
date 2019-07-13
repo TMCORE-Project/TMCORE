@@ -1,11 +1,11 @@
 &time_control
 run_days = 20
-dt       = 720
+dt       = 240
 /
 
 &io_control
 history_interval   = '1 hours'
-output_file_prefix = 'jzf.2562'
+output_file_prefix = 'jzf.40962'
 frames_per_file    = '2000 months'
 /
 
@@ -18,7 +18,7 @@ adv_order              = 2
 adv_mono               = .true.
 interp_pv_order        = 3
 flux_4th_order_correct = .false.
-mesh_file_path         = './x1.2562.grid.nc'
+mesh_file_path         = './x1.40962.grid.nc'
 /
 
 &test_case
