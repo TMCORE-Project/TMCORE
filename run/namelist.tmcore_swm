@@ -4,8 +4,8 @@ dt       = 240
 /
 
 &io_control
-history_interval   = '6 hours'
-output_file_prefix = 'mz.40962'
+history_interval   = '1 hours'
+output_file_prefix = 'jzf.2562'
 frames_per_file    = '2000 months'
 /
 
@@ -18,10 +18,10 @@ adv_order              = 2
 adv_mono               = .true.
 interp_pv_order        = 3
 flux_4th_order_correct = .false.
-mesh_file_path         = './x1.40962.grid.nc'
+mesh_file_path         = './x1.2562.grid.nc'
 /
 
 &test_case
-! Choose from 'mountain_zonal_flow', 'steady_geostrophic_flow', 'rossby_haurwitz_wave', 'linearized_rossby_wave'
-case_name = 'mountain_zonal_flow'
+! Choose from 'mountain_zonal_flow', 'steady_geostrophic_flow', 'rossby_haurwitz_wave', 'linearized_rossby_wave','jet_zonal_flow'
+case_name = 'jet_zonal_flow'
 /

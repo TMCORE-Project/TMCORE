@@ -25,46 +25,44 @@ contains
 
   subroutine jet_zonal_flow_test_set_initial_condition()
 
-    real(r8), allocatable :: psiVertex(:)
     integer iCell, iEdge, iVertex
     integer neval, ierr
     real(r8) abserr
+    real(r8) u, v
+    real(r8) angle1,angle2
+    real(r8) lon
 
     call log_notice('Use jet zonal flow initial condition.')
 
     static%cell%ghs = 0.0_r8
 
-    allocate(psiVertex(nVertices))
-    do iVertex = lbound(state(1)%vertex%pv, 1), ubound(state(1)%vertex%pv, 1)
-      if (latVertex(iVertex) <= lat0 .or. latVertex(iVertex) >= lat1) then
-        psiVertex(iVertex) = 0.0_r8
-      else
-        psiVertex(iVertex) = u_max / en * exp(1.0_r8 / (latVertex(iVertex) - lat0) / (latVertex(iVertex) - lat1)) * &
-          (- 1.0_r8 / (latVertex(iVertex) - lat0)    / (latVertex(iVertex) - lat1)**2 &
-           - 1.0_r8 / (latVertex(iVertex) - lat0)**2 / (latVertex(iVertex) - lat1))
-      end if
-    end do
-
-    do iEdge = lbound(state(1)%edge%u, 1), ubound(state(1)%edge%u, 1)
-      state(1)%edge%u(iEdge) = -( psiVertex(verticesOnEdge(2,iEdge)) &
-                                - psiVertex(verticesOnEdge(1,iEdge)) ) / dvEdge(iEdge)
-    end do
-    deallocate(psiVertex)
+    v = 0._r8
+    do iEdge = 1,nEdges
+      u      = u_function(latEdge(iEdge))
+      state(1)%edge%u(iEdge) = cos(angleEdge(iEdge))*sqrt(u**2+v**2)
+    enddo
 
     do iCell = lbound(static%cell%ghs, 1), ubound(static%cell%ghs, 1)
-      call qags(gh_integrand, -0.5*pi, latCell(iCell), 1.0e-10, 1.0e-3, state(1)%cell%gd(iCell), abserr, neval, ierr)
+      call qags(gh_integrand, -0.5_r8*pi, latCell(iCell), 1.0e-10, 1.0e-3, state(1)%cell%gd(iCell), abserr, neval, ierr)
+      
       state(1)%cell%gd(iCell) = gh0 - state(1)%cell%gd(iCell)
-      state(1)%cell%gd(iCell) = state(1)%cell%gd(iCell) + ghd * cos(latCell(iCell)) * &
-        exp(-((lonCell(iCell) - pi) / alpha)**2) * exp(-((lat2 - latCell(iCell)) / beta)**2)
+      
+      if(lonCell(iCell)>pi)then
+        lon = lonCell(iCell) - 2._r8 * pi
+      else
+        lon = lonCell(iCell)
+      endif
+      
+      state(1)%cell%gd(iCell) = state(1)%cell%gd(iCell) + ghd * cos(latCell(iCell)) * exp(-(lon / alpha)**2) * exp(-((lat2 - latCell(iCell)) / beta)**2)
     end do
 
   end subroutine jet_zonal_flow_test_set_initial_condition
 
   real function gh_integrand(lat) result(res)
 
-    real, intent(in) :: lat
+    real(r8), intent(in) :: lat
 
-    real u, f
+    real(r8) u, f
 
     u = u_function(lat)
     f = 2 * omega * sin(lat)
@@ -74,10 +72,10 @@ contains
 
   real function u_function(lat) result(res)
 
-    real, intent(in) :: lat
+    real(r8), intent(in) :: lat
 
     if (lat <= lat0 .or. lat >= lat1) then
-      res = 0.0
+      res = 0._r8
     else
       res = u_max / en * exp(1 / (lat - lat0) / (lat - lat1))
     end if
